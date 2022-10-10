@@ -1,5 +1,5 @@
 ---
-title: 'I'm Ludovico'
+title: "I'm Ludovico"
 image: images/profile.png
 url: "about"
 menu:
