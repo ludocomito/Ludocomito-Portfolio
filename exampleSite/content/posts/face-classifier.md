@@ -13,7 +13,7 @@ Inside this repository lies the part of the project responsible for creating and
 
 The main components of this repo are the jupyter notebook files, which contain the [training phase](https://github.com/ludocomito/marrtino-face-detection/blob/main/MARRtino_Face_Detection_Use_Model.ipynb) of the model, and the [usage](https://github.com/ludocomito/marrtino-face-detection/blob/main/MARRtino_Face_Detection_Use_Model.ipynb) and [testing](https://github.com/ludocomito/marrtino-face-detection/blob/main/face-mask-model-study.ipynb) of the trained model.
 
-## Considerations about the dataset  💽
+# Considerations about the dataset  💽
 
 The dataset used for training my model can be found on Kaggle at [this page](https://www.kaggle.com/datasets/vijaykumar1799/face-mask-detection). It contains images belonging to the following classes:
 
@@ -27,11 +27,11 @@ This makes the dataset very balanced with all the classes represented with the s
 
 The following is a sample of 64 images plotted from the dataset:
 
-![Plotted using MatplotlLib](../../themes/hugo-creative-portfolio-theme/static/img/Schermata_2022-07-24_alle_22.53.59.png)
+![Plotted using MatplotlLib](/Schermata_2022-07-24_alle_22.53.59.png)
 
 Plotted using MatplotlLib
 
-## Choosing the model to be trained  🧠
+# Choosing the model to be trained  🧠
 
 The model chosen for this task of image classification is ResNet:
 
@@ -41,9 +41,9 @@ When deeper networks are able to start converging, degradation problem occurs. A
 
 Deep residual learning framework address the degradation problem. Instead of hoping each few stacked layers directly fit a desired underlying mapping, these layers are explicitly made to fit a residual mapping. 
 
-![resnet.png](resnet.png)
+![resnet.png](/resnet.png)
 
-## Training the model with PyTorch 🔥
+# Training the model with PyTorch 🔥
 
 The framework used to train the model is PyTorch. It takes care of image preprocessing and model training, and my implementation can be found in the [‘****face-mask-detection-marrtino.ipynb’****](https://github.com/ludocomito/marrtino-face-detection/blob/main/face-mask-detection-marrtino.ipynb) notebook that you can find inside the repository.
 
@@ -51,7 +51,7 @@ During my test I experimented training both a ResNet model that came with its we
 
 Basically I discovered by accident the concept of transfer learning. In fact the usage of a model which has been pre-trained to a similar problem leads to visibly better result, that I will show you in the next paragraph.
 
-## Pre-trained vs plain ResNet18 results  🥊
+# Pre-trained vs plain ResNet18 results  🥊
 
 Both the pre-trained and not pre-trained ResNet18 models showed good results, reaching peaks of accuracy of more than 0.96 in both cases. Moreover the loss in both the Training and Validation phases has decreased almost continously.
 
@@ -65,7 +65,7 @@ The not pre-trained one instead follows a much more organic evolution, starting 
 
 The plots show here have been created by logging the training data to the Weights&Biases platform. I included better documentation inside the [training reports](https://github.com/ludocomito/marrtino-face-detection/tree/main/training%20reports) folder, that you can find inside this repository.
 
-## Checking the model’s performance  🔍
+# Checking the model’s performance  🔍
 
 In order to measure the performance of the obtained model (in this case the not pre-trained one) I computed a confusion matrix testing the predictions on the whole dataset. As you can see from the image below, the results are well distributed on the main diagonal, showing that most of the model predictions are actually correct, with only a small percentage (approx 1%) of incorrect guesses:
 
