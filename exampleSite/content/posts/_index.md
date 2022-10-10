@@ -1,5 +1,5 @@
 ---
-title: "Blog"
+title: "Stuff I make"
 date: 2019-02-24
 menu:
   main:

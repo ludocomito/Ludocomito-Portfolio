@@ -1,6 +1,6 @@
 ---
-title: 'About'
-image: images/writer.jpeg
+title: 'I'm Ludovico'
+image: images/profile.png
 url: "about"
 menu:
   main:
