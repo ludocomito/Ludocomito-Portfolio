@@ -2,7 +2,7 @@ baseURL = "/"
 languageCode = "en-us"
 theme = "hugo-winston-theme"
 themesDir = "themes"
-title = "Hugo Winston Theme"
+title = "Ludocomito's portfolio"
 paginate = 3
 pygmentsCodeFences = true
 pygmentsCodefencesGuessSyntax = true
@@ -21,12 +21,17 @@ pygmentsUseClasses = true
   showPostsOnHomepage = false
   addDot = true
   addFrame = true
-  highlightColor = '#7b16ff'
+  highlightColor = '#FB5012'
+  #highlightColor = '#ffffff'
   baseColor = "#ffffff"
+  #baseColor = "#000000"
   baseOffsetColor = "#eaeaea"
-  headingColor = "#1c1b1d"
-  textColor = "#4e5157"
-  dotColor = "#7b16ff"
+  #baseOffsetColor = "#eaeaea"
+  headingColor = "#000000"
+  #headingColor = "#ffffff"
+  textColor = "#000000"
+  #textColor = "#ffffff"
+  dotColor = "#FB5012"
 
 # markdown config settings https://gohugo.io/getting-started/configuration-markup/#goldmark
 [markup]
