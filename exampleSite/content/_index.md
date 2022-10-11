@@ -1,6 +1,6 @@
 ---
 title: I'm a developer from Rome
-description: The hallway smelt of boiled cabbage and old rag mats.
+description: Ludocomito's portfolio.
 ---
 
 Computer Engineering student, Maker 🧑🏻‍💻
