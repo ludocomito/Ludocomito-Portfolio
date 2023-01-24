@@ -1,14 +1,24 @@
-name = "Hugo Winston"
-license = "MIT"
-licenselink = "https://github.com/zerostaticthemes/hugo-winston/blob/master/LICENSE"
-description = "Hugo Winston is a bold minimal blogging theme"
+name = "TailBliss"
+license = "Apache-2.0"
+licenselink = "https://github.com/nusserstudios/tailbliss/blob/main/LICENSE"
+description = "TailBliss is an Hugo Starter with Tailwind CSS 3.2 and Alpine.js with light and dark modes. Submitted for Hacktoberfest 2022."
 
-homepage = "https://github.com/zerostaticthemes/hugo-winston-theme"
-demosite = "https://hugo-winston.netlify.app"
+# The home page of the theme, where the source can be found.
+homepage = "https://github.com/nusserstudios/tailbliss"
 
-tags = ["blog", "minimal", "clean", "zerostatic"]
-features = ["blog"]
+# If you have a running demo of the theme.
+demosite = "https://tailbliss.netlify.app/"
 
+tags = ["blog", "tailwind", "tailwindcss", "dark", "light", "responsive", "minimal", "portfolio", "company", "gallery", "personal" ]
+features = ["blog", "categories", "webp", "tailwind3", "alpinejs"]
+
+# If the theme has a single author
 [author]
-  name = "Robert Austin"
-  homepage = "https://www.zerostatic.io"
+    name = "Jeremy Nusser"
+    homepage = "https://nusserstudios.com"
+
+# If porting an existing theme
+[original]
+  name = "Hugo-Tailwind-3.1"
+  homepage = "https://github.com/4044ever"
+  repo = "https://github.com/4044ever/Hugo-Tailwind-3.1"
