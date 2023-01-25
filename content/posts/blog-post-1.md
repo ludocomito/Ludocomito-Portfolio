@@ -3,7 +3,7 @@ title: "POSTino: a mobile robot for delivery pickup"
 date: 2023-01-24T11:10:36+08:00
 draft: false
 language: en
-featured_image: ../assets/images/featured/DSC09742-2.jpg
+featured_image: ../assets/images/featured/cover_thesis.png
 summary: BSc thesis about Robotics, Artificial Intelligence and Computer Vision.
 description: Thesis project which involved the development of a mobile robot by leveraging the concepts of Artificial Intelligence, Computer Vision and robot programming in ROS. Created a robot with path planning and autonomous navigation capabilities and able to e�ffectively interact with people and the environment.
 author: Ludovico Comito
