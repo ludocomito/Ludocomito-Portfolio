@@ -1,26 +1,17 @@
 ---
-title: "MARRtino face recognition"
+title: "POSTino: a mobile robot for delivery pickup" 
 date: 2023-01-24T11:10:36+08:00
 draft: false
 language: en
 featured_image: ../assets/images/featured/DSC09742-2.jpg
-summary: An extract from my thesis
-description: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed cursus, odio nec venenatis lacinia, lacus lectus varius nisi, in tristique mi purus ut libero. Vestibulum vel convallis felis. Ut finibus lorem vestibulum lobortis rhoncus.
-author: TailBliss
+summary: BSc thesis about Robotics, Artificial Intelligence and Computer Vision.
+description: Thesis project which involved the development of a mobile robot by leveraging the concepts of Artificial Intelligence, Computer Vision and robot programming in ROS. Created a robot with path planning and autonomous navigation capabilities and able to e�ffectively interact with people and the environment.
+author: Ludovico Comito
 authorimage: ../assets/images/global/author.webp
-categories: Blog
-tags: Blog, Machine Learning, Robotics
+categories: Portfolio
+tags: [ML, Robotics, Projects]
 ---
-__Advertisement :smile:__
 
-- __[pica](https://nodeca.github.io/pica/demo/)__ - high quality and fast image
-  resize in browser.
-- __[babelfish](https://github.com/nodeca/babelfish/)__ - developer friendly
-  i18n with plurals support and easy syntax.
-
-You will like those projects!
-
----
 Introduction
 ============
 

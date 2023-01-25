@@ -1,5 +1,5 @@
-baseURL = "https://ludocomito.dev/"
-title = "My portfolio"
+baseURL = "https://tailbliss.netlify.app/"
+title = "Ludovico Comito"
 
 languageCode = "en-us"
 DefaultContentLanguage = "en"
@@ -16,7 +16,6 @@ enableInlineShortcodes = true
 author = "Ludovico Comito"
 authorimage = "../assets/images/global/author.webp"
 github = "https://github.com/ludocomito"
-facebook = "https://facebook.com/nusserstudios"
 og_image = "/images/tailbliss-cover.png"
 sitename = "Ludocomito's Portfolio"
 twitter = "@nusserstudios"
