@@ -5,7 +5,7 @@ draft: false
 language: en
 featured_image: ../assets/images/featured/banger_detector_cover.png
 summary: Banger Detector is an Open-Source project that aims to create a service to forecast whether a new song could become popular by assigning it a rating.
-description: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed cursus, odio nec venenatis lacinia, lacus lectus varius nisi, in tristique mi purus ut libero. Vestibulum vel convallis felis. Ut finibus lorem vestibulum lobortis rhoncus.
+description: Forecasting popularity
 author: Ludovico Comito
 authorimage: ../assets/images/global/author.webp
 categories: Collaborations
