@@ -16,13 +16,6 @@ math: true
 # MARRtino face mask classifier 😷
 
 ## About the project
-Given an input dataset consisting in a cartesian product of m attributes $X=A_1 \times A_2\times...\times A_m$, and a set of classes $C$, we want to find a function such that $f:X\rarr C$.
-
-$$
-Gain(S,A)=Entropy(S)-\sum_{v\in Values(A)}\frac{|S_v|}{|S|}Entropy(S_v)
-$$
-
-
 The goal of this project is training a Neural Network in order to tell apart people that wear a face mask correctly from the ones that either don’t have masks on or that are wearing it incorrectily.
 
 The main components of this project are the jupyter notebook files, which contain the [training phase](https://github.com/ludocomito/marrtino-face-detection#:~:text=MARRtino_Face_Detection_Use_Model.ipynb) of the model, and the [usage](https://github.com/ludocomito/marrtino-face-detection/blob/main/MARRtino_Face_Detection_Use_Model.ipynb) and testing of the trained model. 
