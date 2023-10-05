@@ -49,14 +49,9 @@ of all kinds. Before illustrating this idea, it is useful to refer to
 the context in which it was born, that is *food delivery* (the delivery
 at home of ready meals), one of the fastest growing sectors with a
 market that has more than tripled since the beginning of 2019
-[@marketEvolution], as highlighted in Figure
-[1.1](#fig:food_delivery_market){reference-type="ref"
-reference="fig:food_delivery_market"}.\
-\
+[@marketEvolution], as highlighted in the figure below:
 
-![Trend of the food delivery market between 2018 and
-2021](assets/food_delivery_market.jpg){#fig:food_delivery_market
-width="60%"}
+![1.1](/food_delivery_market.webp)
 
 \
 However, the consequence of the surge in the number of deliveries has
