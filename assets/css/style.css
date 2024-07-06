@@ -1203,10 +1203,6 @@ video {
   display: none;
 }
 
-.h-5 {
-  height: 1.25rem;
-}
-
 .h-full {
   height: 100%;
 }
@@ -1235,12 +1231,12 @@ video {
   height: 1rem;
 }
 
-.max-h-12 {
-  max-height: 3rem;
+.h-5 {
+  height: 1.25rem;
 }
 
-.w-5 {
-  width: 1.25rem;
+.max-h-12 {
+  max-height: 3rem;
 }
 
 .w-full {
@@ -1269,6 +1265,10 @@ video {
 
 .w-4 {
   width: 1rem;
+}
+
+.w-5 {
+  width: 1.25rem;
 }
 
 .w-0 {
