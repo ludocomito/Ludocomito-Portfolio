@@ -1,5 +1,5 @@
 ---
-title: "Event Detection using GloVe word embeddings and RNN-based architectures"
+title: "Event Detection using GloVe and RNN-based architectures"
 date: 2023-03-04T11:10:36+08:00
 draft: false
 language: en
