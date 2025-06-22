@@ -10,7 +10,7 @@ export default function Projects() {
       image: "/pnmlr-icon5.png",
       alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
       preview:
-        "The core idea is to map string queries directly to relevant docids, simplifying the retrieval process. With this project, we explore solutions based on the same DSI concept, but exploring new architectures and new training approaches to further deepen our understanding of the original paper and trying to clarify and uncover its strengths and weaknesses.",
+        "A personalized route recommendation system that integrates user preferences using Graph Attention Networks. The PNMLR model considers factors like user ID, time of day, and transport mode to deliver truly personalized route predictions, significantly outperforming traditional generic routing solutions.",
     },
     {
       id: "dsi-for-ir",
@@ -19,7 +19,7 @@ export default function Projects() {
       image: "/DSI-illustration.png",
       alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
       preview:
-        "The core idea is to map string queries directly to relevant docids, simplifying the retrieval process. With this project, we explore solutions based on the same DSI concept, but exploring new architectures and new training approaches to further deepen our understanding of the original paper and trying to clarify and uncover its strengths and weaknesses.",
+        "An exploration of the DSI concept using encoder-decoder architectures for information retrieval. This project investigates mapping string queries directly to relevant document IDs, experimenting with T5, Lamini-Flan-T5, and custom BERT-GPT2 architectures to understand the strengths and weaknesses of differentiable search indexing.",
     },
     {
       id: "rl-robot",
@@ -28,7 +28,7 @@ export default function Projects() {
       image: "/rl_robot.png",
       alt: "Watercolor illustration of a cozy study workspace with a robot and person learning together",
       preview:
-        "A study on lifelong learning systems that adapt and grow without forgetting. This work explores how artificial intelligence can learn continuously, much like humans do throughout their lives.",
+        "A from-scratch differential drive robot built with Arduino and Raspberry Pi, controlled by a PPO-based reinforcement learning policy. The robot navigates to targets while avoiding obstacles using only distance and angle information from sensors, demonstrating practical applications of deep RL in robotics.",
     },
     {
       id: "wsd-clipseg",
@@ -37,7 +37,7 @@ export default function Projects() {
       image: "/wsd-icon.png",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
-        "An investigation into learning through trial and reward. This project delves into how agents navigate complex environments, making decisions and learning from consequences in uncertain worlds.",
+        "A Visual Word Sense Disambiguation system that identifies images representing the correct sense of ambiguous words in context. Using CLIPSeg for improved image segmentation capabilities, this project achieves significant performance gains over baseline CLIP models, with support for multilingual contexts through translation.",
     },
     {
       id: "homonimy-disambiguation",
@@ -46,7 +46,7 @@ export default function Projects() {
       image: "/homonymy_icon.png",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
-        "An investigation into learning through trial and reward. This project delves into how agents navigate complex environments, making decisions and learning from consequences in uncertain worlds.",
+        "A homonymy disambiguation system using DeBERTa for coarse-grained Word Sense Disambiguation. The architecture incorporates hidden state averaging, sub-token pooling, and logits masking to effectively assign correct meanings to ambiguous words based on their context, handling thousands of possible senses efficiently.",
     },
     {
       id: "postino",
@@ -55,7 +55,7 @@ export default function Projects() {
       image: "/postino-icon.png",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
-        "An investigation into learning through trial and reward. This project delves into how agents navigate complex environments, making decisions and learning from consequences in uncertain worlds.",
+        "A mobile delivery robot designed for the RoboCup@Home Education 2022 competition, inspired by the 'Carry My Luggage' task. POSTino addresses real-world delivery challenges by providing contactless pickup solutions, supporting social distancing requirements during the COVID-19 pandemic while following operators and navigating environments autonomously.",
     },
   ]
 
