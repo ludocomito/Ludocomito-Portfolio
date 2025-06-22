@@ -6,7 +6,7 @@ export default function Projects() {
     {
       id: "pnmlr",
       title: "PNMLR: Enhancing Route Recommendations With Personalized Preferences using GATs",
-      date: "16 feb 2025",
+      date: "March 2025",
       image: "/pnmlr-icon5.png",
       alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
       preview:
@@ -15,34 +15,34 @@ export default function Projects() {
     {
       id: "dsi-for-ir",
       title: "Differentiable Search Index For Information Retrieval",
-      date: "16 feb 2025",
+      date: "September 2024",
       image: "/DSI-illustration.png",
       alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
       preview:
         "An exploration of the DSI concept using encoder-decoder architectures for information retrieval. This project investigates mapping string queries directly to relevant document IDs, experimenting with T5, Lamini-Flan-T5, and custom BERT-GPT2 architectures to understand the strengths and weaknesses of differentiable search indexing.",
     },
     {
-      id: "rl-robot",
-      title: "Deep RL for Differential Drive Robot",
-      date: "16 feb 2025",
-      image: "/rl_robot.png",
-      alt: "Watercolor illustration of a cozy study workspace with a robot and person learning together",
-      preview:
-        "A from-scratch differential drive robot built with Arduino and Raspberry Pi, controlled by a PPO-based reinforcement learning policy. The robot navigates to targets while avoiding obstacles using only distance and angle information from sensors, demonstrating practical applications of deep RL in robotics.",
-    },
-    {
       id: "wsd-clipseg",
       title: "Visual WSD using CLIPSeg",
-      date: "21 jun 2025",
+      date: "March 2024",
       image: "/wsd-icon.png",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
         "A Visual Word Sense Disambiguation system that identifies images representing the correct sense of ambiguous words in context. Using CLIPSeg for improved image segmentation capabilities, this project achieves significant performance gains over baseline CLIP models, with support for multilingual contexts through translation.",
     },
     {
+      id: "rl-robot",
+      title: "Deep RL for Differential Drive Robot",
+      date: "January 2024",
+      image: "/rl_robot.png",
+      alt: "Watercolor illustration of a cozy study workspace with a robot and person learning together",
+      preview:
+        "A from-scratch differential drive robot built with Arduino and Raspberry Pi, controlled by a PPO-based reinforcement learning policy. The robot navigates to targets while avoiding obstacles using only distance and angle information from sensors, demonstrating practical applications of deep RL in robotics.",
+    },
+    {
       id: "homonimy-disambiguation",
       title: "Homonymy disambiguation using DeBERTa",
-      date: "21 jun 2025",
+      date: "November 2023",
       image: "/homonymy_icon.png",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
@@ -51,7 +51,7 @@ export default function Projects() {
     {
       id: "postino",
       title: "POSTino: a mobile robot for delivery pickup",
-      date: "21 jun 2025",
+      date: "December 2022",
       image: "/postino-icon.png",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
@@ -118,23 +118,6 @@ export default function Projects() {
                     <p className="text-base md:text-lg text-gray-600 transition-colors duration-300 md:group-hover:text-gray-800">
                       {project.date}
                     </p>
-                  </div>
-                </div>
-
-                {/* Book Page Preview - Hidden on mobile */}
-                <div className="hidden md:block absolute left-full top-1/2 -translate-y-1/2 ml-8 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out transform translate-x-4 group-hover:translate-x-0 z-10">
-                  <div className="bg-white border border-gray-200 rounded-lg shadow-xl p-6 relative">
-                    {/* Page corner fold effect */}
-                    <div className="absolute top-0 right-0 w-6 h-6 bg-gray-100 transform rotate-45 translate-x-3 -translate-y-3 border-r border-t border-gray-200"></div>
-
-                    {/* Content */}
-                    <div className="relative">
-                      <h3 className="text-xl font-normal mb-3 text-red-700 border-b border-gray-200 pb-2">
-                        {project.title}
-                      </h3>
-                      <p className="text-sm leading-relaxed text-gray-700">{project.preview}</p>
-                      <div className="mt-4 text-xs text-gray-500 italic">Click to read more...</div>
-                    </div>
                   </div>
                 </div>
               </Link>
