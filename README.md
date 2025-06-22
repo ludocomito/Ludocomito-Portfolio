@@ -1,87 +1,156 @@
-<p align="center" style="padding-top:20px">
- <img width="100px" src="images/logo-tailbliss-round.svg" align="center" alt="GitHub Readme Stats" />
- <h1 align="center">TailBliss</h1>
- <p align="center">TailBliss is an opinionated Hugo Starter with Tailwind CSS 3.2 and Alpine.js with light/dark modes.</p>
+# Minimal Portfolio
+
+A modern, minimal portfolio website built with Next.js 15, TypeScript, and Tailwind CSS.
+
+## Tech Stack
+
+- **Framework**: Next.js 15
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI
+- **Package Manager**: PNPM
+- **Additional Libraries**: 
+  - Lucide React (icons)
+  - Next Themes (dark/light mode)
+  - React Hook Form + Zod (forms)
+  - Framer Motion compatible components
+
+## Prerequisites
+
+Before running this project, make sure you have the following installed:
+
+- **Node.js** (version 18 or higher)
+- **PNPM** (recommended package manager)
+
+### Installing PNPM
+
+If you don't have PNPM installed, you can install it globally:
+
+```bash
+npm install -g pnpm
+```
+
+Or using other methods from [pnpm.io](https://pnpm.io/installation).
+
+## Getting Started
+
+1. **Clone the repository** (if you haven't already):
+   ```bash
+   git clone <your-repo-url>
+   cd minimal-portfolio
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pnpm install
+   ```
+
+3. **Run the development server**:
+   ```bash
+   pnpm dev
+   ```
+
+4. **Open your browser** and navigate to [http://localhost:3000](http://localhost:3000)
+
+The page will automatically reload when you make changes to the code.
+
+## Available Scripts
+
+- `pnpm dev` - Starts the development server
+- `pnpm build` - Creates an optimized production build
+- `pnpm start` - Starts the production server (run `pnpm build` first)
+- `pnpm lint` - Runs ESLint to check for code issues
+
+## Development Workflow
+
+1. **Development**: Use `pnpm dev` for local development with hot reloading
+2. **Building**: Use `pnpm build` to create a production-ready build
+3. **Production**: Use `pnpm start` to serve the production build locally
+
+## Project Structure
+
+```
+├── app/                 # Next.js App Router pages
+│   ├── globals.css     # Global styles
+│   ├── layout.tsx      # Root layout component
+│   ├── page.tsx        # Home page
+│   └── projects/       # Projects section
+├── components/         # Reusable UI components
+├── hooks/             # Custom React hooks
+├── lib/               # Utility functions
+├── public/            # Static assets
+├── styles/            # Additional stylesheets
+└── README.md          # This file
+```
+
+## Customization
+
+- **Styling**: Modify `tailwind.config.ts` for custom Tailwind configuration
+- **Components**: Add new components in the `components/` directory
+- **Pages**: Add new routes in the `app/` directory (App Router)
+- **Global Styles**: Edit `app/globals.css` for global styling
+
+## Rendering LaTeX
+
+This project uses `react-latex-next` to render LaTeX. The KaTeX stylesheet is already imported in `app/layout.tsx`.
+
+To add LaTeX to a component, first import the `Latex` component:
+
+```tsx
+import Latex from "react-latex-next";
+```
+
+### Inline LaTeX
+
+To render LaTeX within a line of text, wrap the expression in single dollar signs (`$`).
+
+```tsx
+<p>
+  This is an inline formula: <Latex>$a^2 + b^2 = c^2$</Latex>.
 </p>
-  <p align="center">
-    <a href="https://github.com/nusserstudios/tailbliss/actions/">
-      <img alt="Tests Passing" src="https://github.com/nusserstudios/tailbliss/actions/workflows/codeql.yml/badge.svg" />
-    </a>
-    <a href="https://github.com/nusserstudios/tailbliss/contributors">
-      <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/nusserstudios/tailbliss?color=0088ff" />
-    </a>
-    <a href="https://github.com/nusserstudios/tailbliss/issues">
-      <img alt="Issues" src="https://img.shields.io/github/issues/nusserstudios/tailbliss?color=fc0b03" />
-    </a>
-    <a href="https://github.com/nusserstudios/tailbliss/pulls">
-      <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/nusserstudios/tailbliss?color=f97316" />
-    </a>
-    <a href="https://app.netlify.com/sites/tailbliss/deploys">
-      <img alt="Netlify Deploys" src="https://api.netlify.com/api/v1/badges/2baf2850-0f9e-49ff-833b-7b1f2db19597/deploy-status" />
-    </a>
-    <br />
-    <br />
-    <a href="https://gohugo.io/">
-      <img src="https://img.shields.io/badge/Hugo%20-0.105.0%20-gray.svg?colorA=c9177e&colorB=FF4088&style=for-the-badge"/>
-    </a>
-    <a href="https://tailwindcss.com/">
-      <img src="https://img.shields.io/badge/TailwindCSS%20-V3-gray.svg?colorA=0284c7&colorB=38bdf8&style=for-the-badge"/>
-    </a>
-    <a href="https://alpinejs.dev/">
-      <img src="https://img.shields.io/badge/Alpine.js%20-V3-gray.svg?colorA=68a5af&colorB=77c1d2&style=for-the-badge"/>
-    </a>
-  </p>
+```
 
-  <p align="center">
-    <a href="https://tailbliss.netlify.app/">View Demo</a>
-    ·
-    <a href="https://github.com/nusserstudios/tailbliss/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/nusserstudios/tailbliss/discussions/categories/feature-request">Request Feature</a>
-    ·
-    <a href="https://github.com/nusserstudios/tailbliss/discussions/categories/general">Ask Question</a>
-  </p>
-</p>
+### Block LaTeX
 
-<p align="center">
-<img src="https://raw.githubusercontent.com/nusserstudios/tailbliss/main/images/tailbliss-lighthouse-11-03-22.png" alt="Tailbliss Google Lighthouse Score" style="margin: 25px auto; max-width: 830px" width="100%" height="" />
-</p>
+For larger equations that should appear on their own line, wrap the expression in double dollar signs (`$$`). It's recommended to use template literals (`{`$$...$$`}`) to avoid issues with backslashes.
 
-**Install to VS Code with:**  
-`git clone git@github.com:nusserstudios/tailbliss your-name`
+```tsx
+<Latex>
+  {`$$ x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a} $$`}
+</Latex>
+```
 
-##### Install with NPM 
-`npm install`
-##### Install with Yarn
-`yarn`
+## Deployment
 
-**To start developing:**
-##### Develop with NPM 
-`npm run start`
-##### Develop with Yarn
-`yarn start`
+This project can be deployed on any platform that supports Next.js:
 
-**To generate the site HTML:**
-##### Build with NPM 
-`npm run build`
-##### Build with Yarn
-`yarn build`
+- **Vercel** (recommended): Connect your GitHub repo for automatic deployments
+- **Netlify**: Use the build command `pnpm build` and publish directory `out` (if using static export)
+- **Other platforms**: Run `pnpm build` and deploy the `.next` folder
 
-**npm run start** will run two commands parallel:  
-`npx tailwindcss -i ./assets/css/main.css -o ./assets/css/style.css --watch`
+## Environment Variables
 
-Has paginated Categories and Tags. Markdown files will automatically convert images put into `/assets` folder to .webp images. 
+If your project uses environment variables, create a `.env.local` file in the root directory:
 
-## Image shortcodes for webp as well.
-{{< imgh src="img-name.jpg" alt="Place alt text here." >}}
+```bash
+# .env.local
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
 
-<a href="https://www.buymeacoffee.com/nusserstudios" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-blue.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+## Troubleshooting
 
-## Credits
-4044ever - Original Theme
-https://github.com/4044ever/Hugo-Tailwind-3.0.git
+### Common Issues
 
-Jan Heise - Alpine.js Navbar
-https://github.com/jan-heise/responsive-navbar-with-dropdown
+1. **Port already in use**: If port 3000 is busy, Next.js will automatically use the next available port
+2. **Installation issues**: Try deleting `node_modules` and `pnpm-lock.yaml`, then run `pnpm install` again
+3. **Build errors**: Check the console output for specific TypeScript or build errors
 
-Made for Hacktoberfest, with ❤️ by NusserStudios.
+### Getting Help
+
+- Check the [Next.js Documentation](https://nextjs.org/docs)
+- Visit [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- Browse [Radix UI Documentation](https://www.radix-ui.com/)
+
+## License
+
+[Add your license information here] 
