@@ -51,17 +51,17 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
             {/* Featured Project 1 */}
             <Link href="/projects/pnmlr" className="group block">
-              <div className="transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg group-hover:shadow-gray-200/50 p-4 -m-4 rounded-lg text-center lg:text-left">
+              <div className="transition-all duration-300 ease-out md:group-hover:-translate-y-1 md:group-hover:shadow-lg md:group-hover:shadow-gray-200/50 p-4 -m-4 rounded-lg text-center lg:text-left">
                 <div className="mb-4 flex justify-center lg:justify-start">
                   <Image
                     src="/pnmlr-icon5.png"
                     alt="PNMLR: Personalized Route Recommendation with GATs"
                     width={300}
                     height={300}
-                    className="w-3/4 md:w-4/5 lg:w-full h-auto transition-transform duration-300 ease-out group-hover:scale-105"
+                    className="w-3/4 md:w-4/5 lg:w-full h-auto transition-transform duration-300 ease-out md:group-hover:scale-105"
                   />
                 </div>
-                <h3 className="text-xl md:text-2xl font-normal mb-2 transition-colors duration-300 group-hover:text-red-700">
+                <h3 className="text-xl md:text-2xl font-normal mb-2 transition-colors duration-300 md:group-hover:text-red-700">
                   PNMLR: Personalized Route Recommendation with GATs
                 </h3>
            
@@ -70,17 +70,17 @@ export default function Home() {
 
             {/* Featured Project 2 */}
             <Link href="/projects/dsi-for-ir" className="group block">
-              <div className="transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg group-hover:shadow-gray-200/50 p-4 -m-4 rounded-lg text-center lg:text-left">
+              <div className="transition-all duration-300 ease-out md:group-hover:-translate-y-1 md:group-hover:shadow-lg md:group-hover:shadow-gray-200/50 p-4 -m-4 rounded-lg text-center lg:text-left">
                 <div className="mb-4 flex justify-center lg:justify-start">
                   <Image
                     src="/DSI-illustration.png"
                     alt="Differentiable Search Index"
                     width={300}
                     height={300}
-                    className="w-3/4 md:w-4/5 lg:w-full h-auto transition-transform duration-300 ease-out group-hover:scale-105"
+                    className="w-3/4 md:w-4/5 lg:w-full h-auto transition-transform duration-300 ease-out md:group-hover:scale-105"
                   />
                 </div>
-                <h3 className="text-xl md:text-2xl font-normal mb-2 transition-colors duration-300 group-hover:text-red-700">
+                <h3 className="text-xl md:text-2xl font-normal mb-2 transition-colors duration-300 md:group-hover:text-red-700">
                   Differentiable Search Index
                 </h3>
                 <p className="text-gray-600 text-base md:text-base">Experiments on information retrieval</p>
@@ -89,17 +89,17 @@ export default function Home() {
 
             {/* Featured Project 3 */}
             <Link href="/projects/rl-robot" className="group block">
-              <div className="transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg group-hover:shadow-gray-200/50 p-4 -m-4 rounded-lg text-center lg:text-left">
+              <div className="transition-all duration-300 ease-out md:group-hover:-translate-y-1 md:group-hover:shadow-lg md:group-hover:shadow-gray-200/50 p-4 -m-4 rounded-lg text-center lg:text-left">
                 <div className="mb-4 flex justify-center lg:justify-start">
                   <Image
                     src="/rl_robot.png"
                     alt="Reinforcement Learning project"
                     width={300}
                     height={300}
-                    className="w-3/4 md:w-4/5 lg:w-full h-auto transition-transform duration-300 ease-out group-hover:scale-105"
+                    className="w-3/4 md:w-4/5 lg:w-full h-auto transition-transform duration-300 ease-out md:group-hover:scale-105"
                   />
                 </div>
-                <h3 className="text-xl md:text-2xl font-normal mb-2 transition-colors duration-300 group-hover:text-red-700">
+                <h3 className="text-xl md:text-2xl font-normal mb-2 transition-colors duration-300 md:group-hover:text-red-700">
                 Deep RL for Differential Drive Robot
 
                 </h3>
