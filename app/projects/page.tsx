@@ -22,6 +22,15 @@ export default function Projects() {
         "An exploration of the DSI concept using encoder-decoder architectures for information retrieval. This project investigates mapping string queries directly to relevant document IDs, experimenting with T5, Lamini-Flan-T5, and custom BERT-GPT2 architectures to understand the strengths and weaknesses of differentiable search indexing.",
     },
     {
+      id: "ncap-project",
+      title: "Exploring Neuroplasticity in Bio-Inspired Neural Networks",
+      date: "August 2024",
+      image: "/ncap-icon.png",
+      alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
+      preview:
+        "An exploration of the DSI concept using encoder-decoder architectures for information retrieval. This project investigates mapping string queries directly to relevant document IDs, experimenting with T5, Lamini-Flan-T5, and custom BERT-GPT2 architectures to understand the strengths and weaknesses of differentiable search indexing.",
+    },
+    {
       id: "wsd-clipseg",
       title: "Visual WSD using CLIPSeg",
       date: "March 2024",
