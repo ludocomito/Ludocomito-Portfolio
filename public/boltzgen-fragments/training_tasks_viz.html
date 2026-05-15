@@ -1,0 +1,364 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+</style>
+
+<div class="training-tasks-viz"
+    style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+
+    <!-- Task Selector -->
+    <div
+        style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <button class="task-btn active" data-task="folding">Folding</button>
+        <button class="task-btn" data-task="binder">Binder Design</button>
+        <button class="task-btn" data-task="scaffolding">Motif Scaffolding</button>
+        <button class="task-btn" data-task="unconditional">Unconditional</button>
+    </div>
+
+    <div class="viz-container"
+        style="background: white; border: 1px solid #eee; border-radius: 8px; height: 300px; position: relative; overflow: hidden;">
+        <svg id="tasks-svg" width="100%" height="100%" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#95a5a6" />
+                </marker>
+                <!-- Gradients/Filters can be added here -->
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                    <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
+
+            <!-- Background grid/context elements could go here -->
+            <g id="scene-group" transform="translate(400, 150)"></g>
+
+            <!-- Labels -->
+            <text x="200" y="40" text-anchor="middle" font-size="14" font-weight="600" fill="#95a5a6"
+                id="input-label">Input</text>
+            <text x="600" y="40" text-anchor="middle" font-size="14" font-weight="600" fill="#95a5a6"
+                id="output-label">Output</text>
+
+            <!-- Central Arrow -->
+            <path d="M 360 150 L 440 150" stroke="#bdc3c7" stroke-width="2" marker-end="url(#arrowhead)"
+                stroke-dasharray="4,4" />
+        </svg>
+    </div>
+
+    <!-- Explanation -->
+    <div id="task-explanation"
+        style="margin-top: 15px; padding: 12px; background: #fff; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #555; border-left: 4px solid #3498db; min-height: 60px; transition: all 0.3s; display: flex; align-items: center;">
+        <!-- Content populated by JS -->
+    </div>
+</div>
+
+<style>
+    .training-tasks-viz {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    .task-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        background: white;
+        color: #555;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+    }
+
+    .task-btn:hover {
+        background: #f8f9fa;
+        border-color: #bdc3c7;
+        transform: translateY(-1px);
+    }
+
+    .task-btn.active {
+        background: #3498db;
+        color: white;
+        border-color: #3498db;
+        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
+    }
+
+    .viz-container circle,
+    .viz-container rect,
+    .viz-container path {
+        transition: all 0.5s ease-in-out;
+    }
+</style>
+
+<script>
+    (function () {
+        const svg = document.getElementById('tasks-svg');
+        const scene = document.getElementById('scene-group');
+        const btns = document.querySelectorAll('.task-btn');
+        const explanation = document.getElementById('task-explanation');
+        const inputLabel = document.getElementById('input-label');
+        const outputLabel = document.getElementById('output-label');
+
+        // Configuration for tasks
+        const tasks = {
+            folding: {
+                title: "Folding (Structure Prediction)",
+                desc: "<div style='width: 100%;'><strong>Input:</strong> Amino acid sequence (1D). <br><strong>Task:</strong> Predict the 3D spatial arrangement of the chain. No new residues are designed; the sequence is fixed.</div>",
+                color: "#3498db",
+                render: renderFolding
+            },
+            binder: {
+                title: "Binder Design",
+                desc: "<div style='width: 100%;'><strong>Input:</strong> Target structure (gray). <br><strong>Task:</strong> Design a new protein binder (orange) that geometrically fits and interacts with the target.</div>",
+                color: "#e67e22",
+                render: renderBinder
+            },
+            scaffolding: {
+                title: "Motif Scaffolding",
+                desc: "<div style='width: 100%;'><strong>Input:</strong> Functional motif fragments (red) fixed in space. <br><strong>Task:</strong> Build a structural scaffold (blue) to connect and support the motifs in their specific positions.</div>",
+                color: "#9b59b6",
+                render: renderScaffolding
+            },
+            unconditional: {
+                title: "Unconditional Design",
+                desc: "<div style='width: 100%;'><strong>Input:</strong> Nothing / Gaussian Noise. <br><strong>Task:</strong> Hallucinate a completely new, physically plausible protein structure from scratch.</div>",
+                color: "#2ecc71",
+                render: renderUnconditional
+            }
+        };
+
+        let currentTask = 'folding';
+        let animationFrame = null;
+
+        // Setup interactions
+        btns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                btns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                setTask(btn.dataset.task);
+            });
+        });
+
+        function setTask(taskKey) {
+            currentTask = taskKey;
+            const config = tasks[taskKey];
+
+            // Update text
+            explanation.innerHTML = config.desc;
+            explanation.style.borderLeftColor = config.color;
+
+            // Clear scene
+            while (scene.firstChild) {
+                scene.removeChild(scene.firstChild);
+            }
+
+            // Render specific visualization
+            config.render(scene, config.color);
+        }
+
+        // --- Render Functions ---
+
+        // Helper to create elements
+        const svgNS = "http://www.w3.org/2000/svg";
+        function createEl(type, attrs, content = null) {
+            const el = document.createElementNS(svgNS, type);
+            for (let k in attrs) el.setAttribute(k, attrs[k]);
+            if (content) el.textContent = content;
+            return el;
+        }
+
+        function renderFolding(container, color) {
+            // Left: Linear Chain
+            const seqGroup = createEl('g', { transform: 'translate(-200, 0)' });
+            container.appendChild(seqGroup);
+
+            // Sequence representation: A-M-I-N-O...
+            for (let i = 0; i < 8; i++) {
+                let x = (i - 3.5) * 25;
+                let rect = createEl('rect', {
+                    x: x - 10, y: -10, width: 20, height: 20, rx: 4,
+                    fill: 'white', stroke: color, 'stroke-width': 2
+                });
+                let char = createEl('text', {
+                    x: x, y: 5, 'text-anchor': 'middle', 'font-size': 10, fill: color, 'font-weight': 'bold'
+                }, String.fromCharCode(65 + i));
+                seqGroup.appendChild(rect);
+                seqGroup.appendChild(char);
+            }
+
+            // Right: Folded Structure
+            const foldGroup = createEl('g', { transform: 'translate(200, 0)' });
+            container.appendChild(foldGroup);
+
+            // Draw a "blob" of connected nodes
+            const coords = [
+                [0, -20], [20, -10], [15, 15], [-10, 25], [-25, 5], [-15, -15]
+            ];
+
+            // Connections
+            let pathD = `M ${coords[0][0]} ${coords[0][1]}`;
+            coords.forEach(c => pathD += ` L ${c[0]} ${c[1]}`);
+            pathD += " Z"; // Loop it for visual style
+
+            const path = createEl('path', {
+                d: pathD, fill: 'none', stroke: color, 'stroke-width': 3, 'stroke-linejoin': 'round', opacity: 0.5
+            });
+            foldGroup.appendChild(path);
+
+            coords.forEach((c, i) => {
+                let circle = createEl('circle', {
+                    cx: c[0], cy: c[1], r: 6, fill: color
+                });
+                foldGroup.appendChild(circle);
+            });
+
+            // Animation: Simulate folding on the right
+            // Just a gentle rotation or pulse to show it's a structure
+            let angle = 0;
+            function animate() {
+                if (currentTask !== 'folding') return;
+                angle += 0.02;
+                const scale = 1 + Math.sin(angle * 2) * 0.05;
+                foldGroup.setAttribute('transform', `translate(200, 0) rotate(${Math.sin(angle) * 10}) scale(${scale})`);
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderBinder(container, color) {
+            // Common Target Shape (Gray)
+            const targetPath = "M -30 -40 C 10 -40, 20 -10, 40 0 C 20 10, 10 40, -30 40 C -60 40, -60 -40, -30 -40";
+
+            // Left: Just Target
+            const leftGroup = createEl('g', { transform: 'translate(-200, 0)' });
+            container.appendChild(leftGroup);
+            leftGroup.appendChild(createEl('path', { d: targetPath, fill: '#ecf0f1', stroke: '#bdc3c7', 'stroke-width': 2 }));
+            leftGroup.appendChild(createEl('text', { x: 0, y: 5, 'text-anchor': 'middle', fill: '#95a5a6', 'font-size': 12, 'font-weight': 'bold' }, 'TARGET'));
+
+            // Right: Target + Binder
+            const rightGroup = createEl('g', { transform: 'translate(200, 0)' });
+            container.appendChild(rightGroup);
+
+            // Target
+            rightGroup.appendChild(createEl('path', { d: targetPath, fill: '#ecf0f1', stroke: '#bdc3c7', 'stroke-width': 2 }));
+
+            // Binder (fits into the "cove" of the target at x=40, y=0)
+            const binderPath = "M 45 -15 C 35 -5, 35 5, 45 15 C 60 25, 80 0, 60 -25 Z";
+            const binder = createEl('path', { d: binderPath, fill: color, stroke: 'none', opacity: 0.8 });
+            rightGroup.appendChild(binder);
+
+            // Animation: Binder floating in/out
+            let t = 0;
+            function animate() {
+                if (currentTask !== 'binder') return;
+                t += 0.05;
+                const offset = Math.sin(t) * 5;
+                binder.setAttribute('transform', `translate(${offset}, 0)`);
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderScaffolding(container, color) {
+            // Motif Definitions (Two fixed pieces)
+            const motif1 = { x: -20, y: -30, w: 10, h: 20 };
+            const motif2 = { x: 20, y: 20, w: 10, h: 20 };
+
+            const drawMotifs = (g) => {
+                g.appendChild(createEl('rect', {
+                    x: motif1.x, y: motif1.y, width: motif1.w, height: motif1.h, rx: 3, fill: '#e74c3c'
+                }));
+                g.appendChild(createEl('rect', {
+                    x: motif2.x, y: motif2.y, width: motif2.w, height: motif2.h, rx: 3, fill: '#e74c3c'
+                }));
+            };
+
+            // Left: Motifs only
+            const leftGroup = createEl('g', { transform: 'translate(-200, 0)' });
+            container.appendChild(leftGroup);
+            drawMotifs(leftGroup);
+
+            // Right: Scaffold
+            const rightGroup = createEl('g', { transform: 'translate(200, 0)' });
+            container.appendChild(rightGroup);
+
+            // Draw Scaffold (connecting curve)
+            // Path passing through motifs
+            const scaffoldD = `M ${motif1.x + 5} ${motif1.y + 10} C -40 0, -40 40, 0 0 S 40 0, ${motif2.x + 5} ${motif2.y}`;
+
+            const scaffoldPath = createEl('path', {
+                d: scaffoldD, fill: 'none', stroke: color, 'stroke-width': 8, 'stroke-linecap': 'round', opacity: 0.3
+            });
+            rightGroup.appendChild(scaffoldPath);
+            drawMotifs(rightGroup); // Draw motifs on top
+
+            // Animation: Pulse the scaffold
+            let t = 0;
+            function animate() {
+                if (currentTask !== 'scaffolding') return;
+                t += 0.1;
+                const op = 0.3 + Math.sin(t) * 0.2;
+                scaffoldPath.setAttribute('opacity', op);
+                scaffoldPath.setAttribute('stroke-width', 8 + Math.sin(t));
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderUnconditional(container, color) {
+            // Left: Noise
+            const leftGroup = createEl('g', { transform: 'translate(-200, 0)' });
+            container.appendChild(leftGroup);
+
+            // Random dots
+            for (let i = 0; i < 20; i++) {
+                leftGroup.appendChild(createEl('circle', {
+                    cx: (Math.random() - 0.5) * 60, cy: (Math.random() - 0.5) * 60,
+                    r: 2, fill: '#bdc3c7'
+                }));
+            }
+            leftGroup.appendChild(createEl('text', { x: 0, y: 50, 'text-anchor': 'middle', fill: '#95a5a6', 'font-size': 10 }, 'NOISE'));
+
+            // Right: Complete Structure
+            const rightGroup = createEl('g', { transform: 'translate(200, 0)' });
+            container.appendChild(rightGroup);
+
+            // A complex shape
+            const shape = createEl('polygon', {
+                points: "0,-40 35,-20 35,20 0,40 -35,20 -35,-20",
+                fill: 'none', stroke: color, 'stroke-width': 2
+            });
+            rightGroup.appendChild(shape);
+
+            // Internal structure lines
+            rightGroup.appendChild(createEl('line', { x1: 0, y1: -40, x2: 0, y2: 40, stroke: color, opacity: 0.5 }));
+            rightGroup.appendChild(createEl('line', { x1: -35, y1: -20, x2: 35, y2: 20, stroke: color, opacity: 0.5 }));
+            rightGroup.appendChild(createEl('line', { x1: -35, y1: 20, x2: 35, y2: -20, stroke: color, opacity: 0.5 }));
+
+            // Animation: Rotate
+            let angle = 0;
+            function animate() {
+                if (currentTask !== 'unconditional') return;
+                angle += 0.5;
+                rightGroup.setAttribute('transform', `translate(200, 0) rotate(${angle})`);
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // Initialize
+        setTask('folding');
+
+    })();
+</script>

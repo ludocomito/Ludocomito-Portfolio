@@ -1,0 +1,739 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+</style>
+
+<div class="pipeline-viz" id="decoder-viz-container"
+    style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+
+    <!-- Step Progress Bar -->
+    <div class="pipeline-progress"
+        style="display: flex; justify-content: space-between; margin-bottom: 20px; position: relative; padding: 0 10px;">
+        <!-- Connecting Line -->
+        <div style="position: absolute; top: 15px; left: 20px; right: 20px; height: 2px; background: #ddd; z-index: 0;">
+        </div>
+
+        <!-- Steps -->
+        <div class="step-node active" data-step="1">
+            <div class="circle">1</div>
+            <div class="label">Identify</div>
+        </div>
+        <div class="step-node" data-step="2">
+            <div class="circle">2</div>
+            <div class="label">Count</div>
+        </div>
+        <div class="step-node" data-step="3">
+            <div class="circle">3</div>
+            <div class="label">Get Code</div>
+        </div>
+        <div class="step-node" data-step="4">
+            <div class="circle">4</div>
+            <div class="label">Lookup</div>
+        </div>
+        <div class="step-node" data-step="5">
+            <div class="circle">5</div>
+            <div class="label">Finalize</div>
+        </div>
+    </div>
+
+    <!-- Visualization Area -->
+    <div class="viz-container"
+        style="background: white; border: 1px solid #eee; border-radius: 8px; height: 400px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+        <!-- Header for Viz (optional, or just part of the stage) -->
+        <div
+            style="padding: 15px; border-bottom: 1px solid #f0f0f0; background: #f9f9f9; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600; color: #555; font-size: 14px;">14-Atom Representation</span>
+            <span id="decoder-status" style="font-size: 12px; color: #888;">Ready</span>
+        </div>
+
+        <!-- Visual Stage -->
+        <div id="decoder-stage"
+            style="flex: 1; padding: 20px; position: relative; display: flex; flex-direction: column; gap: 15px;">
+
+            <!-- Backbone Row -->
+            <div class="stage-section">
+                <div class="section-label">Backbone (Atoms 1-4)</div>
+                <div class="atoms-row" id="backbone-row-new">
+                    <div class="atom-wrapper" id="N-wrapper">
+                        <div class="atom backbone-atom" id="N-atom">N</div>
+                        <div class="count-bin" id="N-bin"></div>
+                        <div class="count-badge" id="N-count">0</div>
+                    </div>
+                    <div class="atom-wrapper" id="CA-wrapper">
+                        <div class="atom backbone-atom" id="CA-atom">Cα</div>
+                        <div class="count-bin" id="CA-bin"></div>
+                        <div class="count-badge" id="CA-count">0</div>
+                    </div>
+                    <div class="atom-wrapper" id="C-wrapper">
+                        <div class="atom backbone-atom" id="C-atom">C</div>
+                        <div class="count-bin" id="C-bin"></div>
+                        <div class="count-badge" id="C-count">0</div>
+                    </div>
+                    <div class="atom-wrapper" id="O-wrapper">
+                        <div class="atom backbone-atom" id="O-atom">O</div>
+                        <div class="count-bin" id="O-bin"></div>
+                        <div class="count-badge" id="O-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidechain Row -->
+            <div class="stage-section" style="flex: 1;">
+                <div class="section-label">Sidechain (Atoms 5-14)</div>
+                <div id="atom-pool-new"
+                    style="display: flex; gap: 10px; justify-content: center; padding-top: 20px; height: 100px; position: relative;">
+                    <!-- Atoms generated here -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Lookup Card (Hidden by default) -->
+        <div id="lookup-card" class="lookup-card">
+            <div class="lookup-row">
+                <span class="code-display">(3, 0, 0, 4)</span>
+                <span class="arrow">&rarr;</span>
+                <span class="res-name">THR</span>
+            </div>
+            <div class="lookup-sub">Threonine</div>
+        </div>
+
+        <!-- Controls -->
+        <div style="position: absolute; bottom: 15px; right: 15px; display: flex; gap: 10px; z-index: 100;">
+            <button id="decoder-btn-prev" class="control-btn" disabled>&larr; Prev</button>
+            <button id="decoder-btn-play" class="control-btn">Play &#9658;</button>
+            <button id="decoder-btn-next" class="control-btn">Next &rarr;</button>
+        </div>
+    </div>
+
+    <!-- Explanation -->
+    <div id="decoder-explanation"
+        style="margin-top: 15px; padding: 12px; background: #fff; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #555; border-left: 4px solid #3498db; min-height: 60px; display: flex; align-items: center;">
+        <div style="width: 100%;"><strong>Input (Denoised Output):</strong> A 14-atom tensor. We have 4 backbone atoms
+            (top) and 10 sidechain atoms (bottom, A5-A14).</div>
+    </div>
+</div>
+
+<style>
+    /* Inherit some styles from pipeline-viz but ensure specific overrides */
+    #decoder-viz-container {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    /* Stage Styles */
+    #decoder-viz-container .section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #95a5a6;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    #decoder-viz-container .atoms-row {
+        display: flex;
+        justify-content: space-around;
+    }
+
+    #decoder-viz-container .atom-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        width: 60px;
+    }
+
+    #decoder-viz-container .count-bin {
+        width: 80px;
+        height: 40px;
+        border: 2px dashed #e0e0e0;
+        border-radius: 8px;
+        margin-top: 5px;
+        background: #fafafa;
+        position: absolute;
+        top: 35px;
+        transition: all 0.3s;
+    }
+
+    #decoder-viz-container .count-bin.active {
+        border-color: #3498db;
+        background: #ebf5fb;
+    }
+
+    #decoder-viz-container .count-badge {
+        margin-top: 50px;
+        /* push below bin */
+        font-size: 14px;
+        font-weight: bold;
+        color: #2c3e50;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    #decoder-viz-container .atom {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 12px;
+        color: white;
+        transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+    }
+
+    #decoder-viz-container .backbone-atom {
+        background-color: #2c3e50;
+        border: 2px solid #2c3e50;
+    }
+
+    #decoder-viz-container .sidechain-atom {
+        background-color: #bdc3c7;
+        border: 2px solid #bdc3c7;
+        position: absolute;
+        /* Crucial for movement */
+    }
+
+    /* States */
+    #decoder-viz-container .atom.real {
+        background-color: #3498db;
+        /* Blue */
+        border-color: #2980b9;
+    }
+
+    #decoder-viz-container .atom.virtual {
+        background-color: #e67e22;
+        /* Orange */
+        border-color: #d35400;
+    }
+
+    #decoder-viz-container .atom.discarded {
+        opacity: 0.2;
+        transform: scale(0.5);
+        background-color: #95a5a6;
+        border-color: #7f8c8d;
+    }
+
+    #decoder-viz-container .atom.final-real {
+        background-color: #2ecc71;
+        /* Green */
+        border-color: #27ae60;
+    }
+
+    #decoder-viz-container .atom-wrapper.final .backbone-atom {
+        background-color: #2ecc71;
+        border-color: #27ae60;
+    }
+
+    /* Lookup Card */
+    #decoder-viz-container .lookup-card {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -40%) scale(0.8);
+        /* Start slightly lower/smaller */
+        background: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        border: 1px solid #eee;
+        text-align: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    #decoder-viz-container .lookup-card.visible {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        pointer-events: auto;
+    }
+
+    #decoder-viz-container .lookup-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        font-size: 18px;
+    }
+
+    #decoder-viz-container .code-display {
+        font-family: monospace;
+        background: #f0f0f0;
+        padding: 4px 8px;
+        border-radius: 4px;
+        color: #555;
+    }
+
+    #decoder-viz-container .arrow {
+        color: #bdc3c7;
+    }
+
+    #decoder-viz-container .res-name {
+        font-weight: 800;
+        color: #2ecc71;
+        font-size: 24px;
+    }
+
+    #decoder-viz-container .lookup-sub {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 5px;
+    }
+
+
+    /* Specific adjustments for pipeline uniformity */
+    #decoder-viz-container .control-btn {
+        background: white;
+        border: 1px solid #ddd;
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #555;
+        transition: all 0.2s;
+    }
+
+    #decoder-viz-container .control-btn:hover:not(:disabled) {
+        background: #f0f0f0;
+        border-color: #bdc3c7;
+    }
+
+    #decoder-viz-container .control-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    #decoder-viz-container .step-node {
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        opacity: 0.6;
+    }
+
+    #decoder-viz-container .step-node:hover {
+        opacity: 0.8;
+    }
+
+    #decoder-viz-container .step-node.active {
+        opacity: 1;
+    }
+
+    #decoder-viz-container .step-node .circle {
+        width: 30px;
+        height: 30px;
+        background: white;
+        border: 2px solid #bdc3c7;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #7f8c8d;
+        margin-bottom: 5px;
+        transition: all 0.3s;
+    }
+
+    #decoder-viz-container .step-node.active .circle {
+        background: #3498db;
+        border-color: #3498db;
+        color: white;
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+    }
+
+    #decoder-viz-container .step-node .label {
+        font-size: 11px;
+        color: #7f8c8d;
+        font-weight: 600;
+    }
+
+    #decoder-viz-container .step-node.active .label {
+        color: #3498db;
+    }
+
+    /* Mobile Optimization */
+    @media (max-width: 600px) {
+        #decoder-viz-container {
+            padding: 10px;
+            margin: 10px auto;
+        }
+
+        /* Compact Progress Bar */
+        .pipeline-progress {
+            margin-bottom: 15px;
+        }
+
+        .step-node .circle {
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+        }
+
+        .step-node .label {
+            display: none;
+            /* Hide labels on very small screens to save space */
+        }
+
+        /* Scale the stage to fit */
+        .viz-container {
+            height: auto;
+            min-height: 350px;
+        }
+
+        #decoder-stage {
+            padding: 10px;
+            transform-origin: top center;
+        }
+
+        /* Adjust atoms for smaller touch targets if needed, 
+           but scaling the whole container might be better if we can.
+           Let's try a responsive flex layout for the backbone first. */
+
+        #decoder-viz-container .atoms-row {
+            gap: 5px;
+        }
+
+        #decoder-viz-container .atom-wrapper {
+            width: 45px;
+            /* Squeeze them a bit */
+        }
+
+        #decoder-viz-container .atom {
+            width: 28px;
+            height: 28px;
+            font-size: 10px;
+        }
+
+        #decoder-viz-container .count-bin {
+            width: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            /* Center it relative to wrapper */
+        }
+
+        /* Controls */
+        #decoder-viz-container .control-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            /* Larger touch targets */
+        }
+
+        /* Lookup Card */
+        #decoder-viz-container .lookup-card {
+            width: 90%;
+            padding: 15px;
+        }
+
+        #decoder-viz-container .lookup-row {
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        #decoder-viz-container .res-name {
+            font-size: 20px;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        const container = document.getElementById('decoder-viz-container');
+        const explanation = document.getElementById('decoder-explanation');
+        const steps = container.querySelectorAll('.step-node');
+        const btnPrev = document.getElementById('decoder-btn-prev');
+        const btnNext = document.getElementById('decoder-btn-next');
+        const btnPlay = document.getElementById('decoder-btn-play');
+        const statusLabel = document.getElementById('decoder-status');
+        const lookupCard = document.getElementById('lookup-card');
+
+        const atomPool = document.getElementById("atom-pool-new");
+        const countBadges = {
+            N: document.getElementById("N-count"),
+            CA: document.getElementById("CA-count"),
+            C: document.getElementById("C-count"),
+            O: document.getElementById("O-count")
+        };
+        const backboneWrappers = {
+            N: document.getElementById("N-wrapper"),
+            CA: document.getElementById("CA-wrapper"),
+            C: document.getElementById("C-wrapper"),
+            O: document.getElementById("O-wrapper")
+        };
+        const bins = {
+            N: document.getElementById("N-bin"),
+            CA: document.getElementById("CA-bin"),
+            C: document.getElementById("C-bin"),
+            O: document.getElementById("O-bin")
+        };
+
+        let currentStep = 0; // 0 means initial state, but UI starts highlighting step 1
+        let isPlaying = false;
+        let playInterval = null;
+        let atomElements = [];
+
+        // Data
+        const sidechainAtomData = [
+            { id: 5, type: 'real', name: 'CB' },
+            { id: 6, type: 'real', name: 'OG1' },
+            { id: 7, type: 'real', name: 'CG2' },
+            { id: 8, type: 'virtual', target: 'N', name: 'V' },
+            { id: 9, type: 'virtual', target: 'N', name: 'V' },
+            { id: 10, type: 'virtual', target: 'N', name: 'V' },
+            { id: 11, type: 'virtual', target: 'O', name: 'V' },
+            { id: 12, type: 'virtual', target: 'O', name: 'V' },
+            { id: 13, type: 'virtual', target: 'O', name: 'V' },
+            { id: 14, type: 'virtual', target: 'O', name: 'V' }
+        ];
+
+        const stepData = {
+            1: {
+                title: "Identify",
+                text: "<div style='width: 100%;'><strong>Step 1 (Identify):</strong> Check coordinates. Atoms with unique positions are <strong>REAL</strong> (blue). Atoms on the backbone (distance &approx; 0) are <strong>VIRTUAL</strong> (orange).</div>"
+            },
+            2: {
+                title: "Count",
+                text: "<div style='width: 100%;'><strong>Step 2 (Count Placements):</strong> We count how many <strong>VIRTUAL</strong> atoms are placed on each backbone atom.</div>"
+            },
+            3: {
+                title: "Get Code",
+                text: "<div style='width: 100%;'><strong>Step 3 (Get Code):</strong> The counts form the unique placement code.<br><code>(N: 3, C&alpha;: 0, C: 0, O: 4)</code></div>"
+            },
+            4: {
+                title: "Lookup",
+                text: "<div style='width: 100%;'><strong>Step 4 (Lookup):</strong> We look up this code in the dictionary...<br><code>(3, 0, 0, 4)  &rarr;  'THR'</code><br>The residue is <strong>Threonine</strong>!</div>"
+            },
+            5: {
+                title: "Finalize",
+                text: "<div style='width: 100%;'><strong>Step 5 (Final Structure):</strong> We assign the correct names (from <code>ref_atoms['THR']</code>) to the <strong>REAL</strong> atoms and discard the <strong>VIRTUAL</strong> ones.</div>"
+            }
+        };
+
+        // --- Logic ---
+
+        function initializeAtoms() {
+            atomPool.innerHTML = "";
+            atomElements = [];
+
+            // Determine pool center for absolute positioning
+            const poolRect = atomPool.getBoundingClientRect();
+            const startX = poolRect.width / 2;
+
+            sidechainAtomData.forEach((atomData, i) => {
+                const atomDiv = document.createElement("div");
+                atomDiv.className = "atom sidechain-atom";
+                atomDiv.innerText = `A${atomData.id}`;
+                atomDiv.dataset.id = atomData.id;
+                atomDiv.dataset.type = atomData.type;
+                atomDiv.dataset.target = atomData.target || '';
+                atomDiv.dataset.finalName = atomData.name || '';
+
+                // Initial position in a row/grid in the pool
+                const offset = (i - 4.5) * 40;
+                // We need to set left/top because they are absolute
+                atomDiv.style.left = `50%`;
+                atomDiv.style.top = `0px`;
+                atomDiv.style.marginLeft = `${offset - 16}px`; // -16 for half width
+                atomDiv.style.transform = 'translate(0, 0)';
+
+                atomPool.appendChild(atomDiv);
+                atomElements.push(atomDiv);
+            });
+
+            // Reset UI
+            Object.values(countBadges).forEach(b => { b.innerText = '0'; b.style.opacity = 0; });
+            Object.values(bins).forEach(b => b.classList.remove('active'));
+            Object.values(backboneWrappers).forEach(w => w.classList.remove('final'));
+            document.querySelectorAll('.backbone-atom').forEach(a => a.className = 'atom backbone-atom');
+            if (lookupCard) lookupCard.classList.remove('visible');
+        }
+
+        function runStep(stepNum) {
+            // Always reset and fast-forward to state
+            // This is simpler than managing transitions between arbitrary steps
+
+            // 1. Reset
+            atomElements.forEach(atom => {
+                atom.className = "atom sidechain-atom";
+                atom.innerText = `A${atom.dataset.id}`;
+                atom.style.transform = 'translate(0, 0)';
+                atom.style.opacity = 1;
+            });
+            Object.values(countBadges).forEach(b => { b.innerText = '0'; b.style.opacity = 0; });
+            Object.values(bins).forEach(b => b.classList.remove('active'));
+            Object.values(backboneWrappers).forEach(w => w.classList.remove('final'));
+            document.querySelectorAll('.backbone-atom').forEach(a => a.className = 'atom backbone-atom');
+            if (lookupCard) lookupCard.classList.remove('visible');
+
+            statusLabel.innerText = stepData[stepNum].title;
+
+            // 2. Apply state cumulatively
+
+            if (stepNum >= 1) {
+                // Identify
+                atomElements.forEach(atom => {
+                    if (atom.dataset.type === 'real') atom.classList.add('real');
+                    else atom.classList.add('virtual');
+                });
+            }
+
+            if (stepNum >= 2) {
+                // Count (Move atoms)
+                const counts = { N: 0, CA: 0, C: 0, O: 0 };
+
+                atomElements.forEach(atom => {
+                    if (atom.dataset.type === 'virtual') {
+                        const targetId = atom.dataset.target;
+                        counts[targetId]++;
+
+                        const bin = bins[targetId];
+                        const atomRect = atom.getBoundingClientRect();
+                        const binRect = bin.getBoundingClientRect();
+
+                        const deltaX = (binRect.left + binRect.width / 2) - (atomRect.left + atomRect.width / 2);
+                        const deltaY = (binRect.top + binRect.height / 2) - (atomRect.top + atomRect.height / 2);
+
+                        atom.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.8)`;
+                    }
+                });
+
+                // Show counts if we are at step 2 or later
+                if (stepNum === 2) {
+                    // Animate counts appearing
+                    setTimeout(() => {
+                        Object.keys(counts).forEach(k => {
+                            countBadges[k].innerText = counts[k];
+                            countBadges[k].style.opacity = 1;
+                        });
+                    }, 300);
+                } else {
+                    // Immediate
+                    Object.keys(counts).forEach(k => {
+                        countBadges[k].innerText = counts[k];
+                        countBadges[k].style.opacity = 1;
+                    });
+                }
+            }
+
+            if (stepNum >= 3) {
+                // Get Code - Highlight bins
+                Object.values(bins).forEach(b => b.classList.add('active'));
+            }
+
+            if (stepNum === 4) {
+                // Lookup - Visual Card
+                if (lookupCard) lookupCard.classList.add('visible');
+            }
+
+            if (stepNum >= 5) {
+                // Finalize
+                atomElements.forEach(atom => {
+                    if (atom.dataset.type === 'virtual') {
+                        atom.classList.add('discarded');
+                    } else {
+                        atom.classList.add('final-real');
+                        atom.innerText = atom.dataset.finalName;
+                    }
+                });
+                Object.values(backboneWrappers).forEach(w => w.classList.add('final'));
+                // Hide bins slightly
+                Object.values(bins).forEach(b => b.style.opacity = 0.5);
+            }
+        }
+
+        function goToStep(stepNum) {
+            currentStep = stepNum;
+
+            // Update UI classes
+            steps.forEach(s => s.classList.remove('active'));
+            const activeNode = container.querySelector(`.step-node[data-step="${stepNum}"]`);
+            if (activeNode) activeNode.classList.add('active');
+
+            explanation.innerHTML = stepData[stepNum].text;
+
+            btnPrev.disabled = (currentStep === 1);
+            btnNext.disabled = (currentStep === 5);
+
+            runStep(stepNum);
+        }
+
+        // Interactions
+        steps.forEach(step => {
+            step.addEventListener('click', () => {
+                goToStep(parseInt(step.dataset.step));
+                stopPlay();
+            });
+        });
+
+        btnNext.addEventListener('click', () => {
+            if (currentStep < 5) {
+                goToStep(currentStep + 1);
+                stopPlay();
+            }
+        });
+
+        btnPrev.addEventListener('click', () => {
+            if (currentStep > 1) {
+                goToStep(currentStep - 1);
+                stopPlay();
+            }
+        });
+
+        btnPlay.addEventListener('click', () => {
+            if (isPlaying) {
+                stopPlay();
+            } else {
+                startPlay();
+            }
+        });
+
+        function startPlay() {
+            isPlaying = true;
+            btnPlay.innerHTML = "Pause &#10074;&#10074;";
+
+            if (currentStep === 5) goToStep(1);
+
+            playInterval = setInterval(() => {
+                if (currentStep < 5) {
+                    goToStep(currentStep + 1);
+                } else {
+                    stopPlay();
+                }
+            }, 2500);
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            btnPlay.innerHTML = "Play &#9658;";
+            if (playInterval) clearInterval(playInterval);
+        }
+
+        // Init
+        initializeAtoms();
+        // We need to wait a moment for layout to settle before calculating positions for animations
+        setTimeout(() => goToStep(1), 100);
+
+    })();
+</script>

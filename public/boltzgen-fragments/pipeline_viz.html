@@ -1,0 +1,737 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+</style>
+
+<div class="pipeline-viz" id="pipeline-viz-container"
+    style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+
+    <!-- Step Progress Bar -->
+    <div class="pipeline-progress"
+        style="display: flex; justify-content: space-between; margin-bottom: 20px; position: relative; padding: 0 10px;">
+        <!-- Connecting Line -->
+        <div style="position: absolute; top: 15px; left: 20px; right: 20px; height: 2px; background: #ddd; z-index: 0;">
+        </div>
+
+        <!-- Steps -->
+        <div class="step-node active" data-step="1">
+            <div class="circle">1</div>
+            <div class="label">Diffusion</div>
+        </div>
+        <div class="step-node" data-step="2">
+            <div class="circle">2</div>
+            <div class="label">Inv. Folding</div>
+        </div>
+        <div class="step-node" data-step="3">
+            <div class="circle">3</div>
+            <div class="label">Folding</div>
+        </div>
+        <div class="step-node" data-step="4">
+            <div class="circle">4</div>
+            <div class="label">Affinity</div>
+        </div>
+        <div class="step-node" data-step="5">
+            <div class="circle">5</div>
+            <div class="label">Analyze</div>
+        </div>
+        <div class="step-node" data-step="6">
+            <div class="circle">6</div>
+            <div class="label">Filter</div>
+        </div>
+    </div>
+
+    <!-- Visualization Area -->
+    <div class="viz-container"
+        style="background: white; border: 1px solid #eee; border-radius: 8px; height: 350px; position: relative; overflow: hidden;">
+        <svg id="pipeline-svg" width="100%" height="100%" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <filter id="glow-pipeline">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                    <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+                <marker id="arrow-pipeline" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#bdc3c7" />
+                </marker>
+            </defs>
+
+            <g id="pipeline-scene" transform="translate(400, 175)"></g>
+
+            <!-- Status/Metrics Display -->
+            <g id="metrics-display" transform="translate(650, 50)" opacity="0">
+                <rect x="0" y="0" width="130" height="110" fill="white" stroke="#bdc3c7" rx="5" stroke-width="1"
+                    filter="url(#glow-pipeline)" />
+                <text x="10" y="20" font-size="10" fill="#7f8c8d" font-weight="bold">METRICS</text>
+
+                <!-- RMSD -->
+                <text x="10" y="35" font-size="9" fill="#34495e">RMSD (Structure)</text>
+                <rect x="10" y="40" width="110" height="6" fill="#ecf0f1" rx="3" />
+                <rect id="bar-rmsd" x="10" y="40" width="0" height="6" fill="#2ecc71" rx="3" />
+
+                <!-- Affinity -->
+                <text x="10" y="60" font-size="9" fill="#34495e">Binding Strength</text>
+                <rect x="10" y="65" width="110" height="6" fill="#ecf0f1" rx="3" />
+                <rect id="bar-affinity" x="10" y="65" width="0" height="6" fill="#e74c3c" rx="3" />
+
+                <!-- pLDDT -->
+                <text x="10" y="85" font-size="9" fill="#34495e">Confidence (pLDDT)</text>
+                <rect x="10" y="90" width="110" height="6" fill="#ecf0f1" rx="3" />
+                <rect id="bar-plddt" x="10" y="90" width="0" height="6" fill="#3498db" rx="3" />
+            </g>
+
+        </svg>
+
+        <!-- Controls -->
+        <div style="position: absolute; bottom: 15px; right: 15px; display: flex; gap: 10px;">
+            <button id="pipeline-btn-prev" class="control-btn" disabled>&larr; Prev</button>
+            <button id="pipeline-btn-play" class="control-btn">Play &#9658;</button>
+            <button id="pipeline-btn-next" class="control-btn">Next &rarr;</button>
+        </div>
+    </div>
+
+    <!-- Explanation -->
+    <div id="pipeline-explanation"
+        style="margin-top: 15px; padding: 12px; background: #fff; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #555; border-left: 4px solid #3498db; min-height: 60px; display: flex; align-items: center;">
+        <div style="width: 100%;"><strong>Step 1: Boltzgen Diffusion.</strong> Starting from noise, the model generates
+            a large population of
+            diverse binder candidates (blue) for the target (gray).</div>
+    </div>
+</div>
+
+<style>
+    .pipeline-viz {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    .step-node {
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        opacity: 0.6;
+    }
+
+    .step-node:hover {
+        opacity: 0.8;
+    }
+
+    .step-node.active {
+        opacity: 1;
+    }
+
+    .step-node .circle {
+        width: 30px;
+        height: 30px;
+        background: white;
+        border: 2px solid #bdc3c7;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #7f8c8d;
+        margin-bottom: 5px;
+        transition: all 0.3s;
+    }
+
+    .step-node.active .circle {
+        background: #3498db;
+        border-color: #3498db;
+        color: white;
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+    }
+
+    .step-node .label {
+        font-size: 11px;
+        color: #7f8c8d;
+        font-weight: 600;
+    }
+
+    .step-node.active .label {
+        color: #3498db;
+    }
+
+    .control-btn {
+        background: white;
+        border: 1px solid #ddd;
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #555;
+        transition: all 0.2s;
+    }
+
+    .control-btn:hover:not(:disabled) {
+        background: #f0f0f0;
+        border-color: #bdc3c7;
+    }
+
+    .control-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+
+<script>
+    (function () {
+        const container = document.getElementById('pipeline-viz-container');
+        const svg = document.getElementById('pipeline-svg');
+        const scene = document.getElementById('pipeline-scene');
+        const explanation = document.getElementById('pipeline-explanation');
+        const metricsGroup = document.getElementById('metrics-display');
+        const steps = container.querySelectorAll('.step-node');
+        const btnPrev = document.getElementById('pipeline-btn-prev');
+        const btnNext = document.getElementById('pipeline-btn-next');
+        const btnPlay = document.getElementById('pipeline-btn-play');
+
+        const barRmsd = document.getElementById('bar-rmsd');
+        const barPlddt = document.getElementById('bar-plddt');
+        const barAffinity = document.getElementById('bar-affinity');
+
+        const svgNS = "http://www.w3.org/2000/svg";
+
+        let currentStep = 1;
+        let isPlaying = false;
+        let animationId = null;
+        let playInterval = null;
+
+        // Step Definitions
+        const stepData = {
+            1: {
+                title: "Boltzgen Diffusion",
+                text: "<div style='width: 100%;'><strong>Step 1: Boltzgen Diffusion.</strong> Starting from noise, the model generates a large population of diverse binder candidates (blue) for the target (gray). In real usage, we might generate thousands.</div>",
+                render: renderStep1
+            },
+            2: {
+                title: "Inverse Folding",
+                text: "<div style='width: 100%;'><strong>Step 2: Inverse Folding (BoltzIF).</strong> The generated backbones are fixed, and we predict the optimal amino acid sequence that would fold into this shape. This refines the sequence for stability.</div>",
+                render: renderStep2
+            },
+            3: {
+                title: "Folding & Verification",
+                text: "<div style='width: 100%;'><strong>Step 3: Folding (Boltz-2).</strong> We take the predicted sequence and re-fold it using Boltz-2. We then compare the re-folded structure to the original generation. Low RMSD means the design is self-consistent.</div>",
+                render: renderStep3
+            },
+            4: {
+                title: "Affinity Prediction",
+                text: "<div style='width: 100%;'><strong>Step 4: Affinity Prediction.</strong> For small molecule targets, we computationally estimate how tightly the binder sticks to the target (binding affinity).</div>",
+                render: renderStep4
+            },
+            5: {
+                title: "Analyze",
+                text: "<div style='width: 100%;'><strong>Step 5: Analyze.</strong> We compute physics-based metrics like Shape Complementarity, Interaction Energy, and Developability scores.</div>",
+                render: renderStep5
+            },
+            6: {
+                title: "Filter",
+                text: "<div style='width: 100%;'><strong>Step 6: Filter & Select.</strong> Finally, we use a 'quality-diversity' algorithm to select the best candidates. We don't just want the top score; we want diverse, high-quality designs to send to the wet lab.</div>",
+                render: renderStep6
+            }
+        };
+
+        // Interactions
+        steps.forEach(step => {
+            step.addEventListener('click', () => {
+                goToStep(parseInt(step.dataset.step));
+                stopPlay();
+            });
+        });
+
+        btnNext.addEventListener('click', () => {
+            if (currentStep < 6) {
+                goToStep(currentStep + 1);
+                stopPlay();
+            }
+        });
+
+        btnPrev.addEventListener('click', () => {
+            if (currentStep > 1) {
+                goToStep(currentStep - 1);
+                stopPlay();
+            }
+        });
+
+        btnPlay.addEventListener('click', () => {
+            if (isPlaying) {
+                stopPlay();
+            } else {
+                startPlay();
+            }
+        });
+
+        function startPlay() {
+            isPlaying = true;
+            btnPlay.innerHTML = "Pause &#10074;&#10074;";
+
+            // If at end, restart
+            if (currentStep === 6) goToStep(1);
+
+            playInterval = setInterval(() => {
+                if (currentStep < 6) {
+                    goToStep(currentStep + 1);
+                } else {
+                    stopPlay();
+                }
+            }, 3000); // 3 seconds per step
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            btnPlay.innerHTML = "Play &#9658;";
+            if (playInterval) clearInterval(playInterval);
+        }
+
+        function goToStep(stepNum) {
+            currentStep = stepNum;
+
+            // Update UI
+            steps.forEach(s => s.classList.remove('active'));
+            container.querySelector(`.step-node[data-step="${stepNum}"]`).classList.add('active');
+
+            explanation.innerHTML = stepData[stepNum].text;
+
+            btnPrev.disabled = (currentStep === 1);
+            btnNext.disabled = (currentStep === 6);
+
+            // Render
+            if (animationId) cancelAnimationFrame(animationId);
+            while (scene.firstChild) scene.removeChild(scene.firstChild);
+            stepData[stepNum].render();
+        }
+
+        // Helpers
+        function createEl(type, attrs) {
+            const el = document.createElementNS(svgNS, type);
+            for (let k in attrs) el.setAttribute(k, attrs[k]);
+            return el;
+        }
+
+        // --- Renderers ---
+
+        // Shared Target Geometry
+        const targetPathD = "M -40 -30 C -20 -30, -10 0, 20 0 C 50 0, 60 -30, 80 -30 C 100 -30, 100 50, 80 50 C 60 50, 50 20, 20 20 C -10 20, -20 50, -40 50 Z";
+
+        function drawTarget(g, x = 0, y = 0, scale = 1) {
+            const tgt = createEl('path', {
+                d: targetPathD, fill: '#ecf0f1', stroke: '#bdc3c7', 'stroke-width': 2,
+                transform: `translate(${x}, ${y}) scale(${scale})`
+            });
+            g.appendChild(tgt);
+        }
+
+        function renderStep1() {
+            // Show multiple small candidates appearing from noise
+            drawTarget(scene, 0, 0, 1.5);
+
+            const candidates = [];
+            const num = 8;
+            for (let i = 0; i < num; i++) {
+                const g = createEl('g', { opacity: 0 });
+                const angle = (i / num) * Math.PI * 2;
+                const dist = 100;
+                const x = Math.cos(angle) * dist;
+                const y = Math.sin(angle) * dist;
+
+                // Random binder shape
+                const shape = createEl('path', {
+                    d: "M -10 -5 Q 0 -15 10 -5 Q 15 5 5 15 Q -5 15 -10 5",
+                    fill: '#3498db', opacity: 0.6
+                });
+                g.appendChild(shape);
+                g.setAttribute('transform', `translate(${x}, ${y})`);
+                scene.appendChild(g);
+                candidates.push({ el: g, x, y, phase: Math.random() * Math.PI });
+            }
+
+            let t = 0;
+            function animate() {
+                t += 0.05;
+                candidates.forEach((c, i) => {
+                    // Fly in
+                    const progress = Math.min(1, (t - i * 0.2)); // Staggered
+                    if (progress > 0) {
+                        const curX = c.x * (1 - progress * 0.6); // Move closer
+                        const curY = c.y * (1 - progress * 0.6);
+                        const op = Math.min(1, progress * 2);
+                        c.el.setAttribute('transform', `translate(${curX}, ${curY}) scale(${0.5 + progress * 0.5})`);
+                        c.el.setAttribute('opacity', op);
+                    }
+                });
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+
+            // Hide metrics
+            metricsGroup.setAttribute('opacity', 0);
+        }
+
+        function renderStep2() {
+            drawTarget(scene, 0, 0, 1.5);
+
+            // Single candidate focused
+            const binder = createEl('g', { transform: 'translate(30, 10)' });
+            scene.appendChild(binder);
+
+            // Backbone line
+            const backbone = createEl('path', {
+                d: "M -20 -20 Q 0 -40 20 -20 Q 40 0 20 20 Q 0 40 -20 20",
+                fill: 'none', stroke: '#3498db', 'stroke-width': 4
+            });
+            binder.appendChild(backbone);
+
+            // Sequence letters appearing
+            const seq = "ACDEFGH";
+            const letters = [];
+            for (let i = 0; i < seq.length; i++) {
+                const angle = (i / seq.length) * Math.PI * 2;
+                const x = Math.cos(angle) * 25;
+                const y = Math.sin(angle) * 25;
+                const txt = createEl('text', {
+                    x: x, y: y, fill: '#e67e22', 'font-size': 14, 'font-weight': 'bold', 'text-anchor': 'middle', opacity: 0
+                });
+                txt.textContent = seq[i];
+                binder.appendChild(txt);
+                letters.push(txt);
+            }
+
+            let t = 0;
+            function animate() {
+                t += 0.05;
+                letters.forEach((l, i) => {
+                    const trigger = i * 0.5;
+                    if (t > trigger) {
+                        l.setAttribute('opacity', Math.min(1, (t - trigger) * 2));
+                    }
+                });
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+            metricsGroup.setAttribute('opacity', 0);
+        }
+
+        function renderStep3() {
+            // Folding comparison
+            // Left: Boltzgen (Blue)
+            const g1 = createEl('g', { transform: 'translate(-100, 0)' });
+            scene.appendChild(g1);
+            g1.appendChild(createEl('text', { y: -60, 'text-anchor': 'middle', fill: '#3498db', 'font-size': 12 }, "Original"));
+            g1.appendChild(createEl('path', {
+                d: "M -30 -30 L 30 -30 L 30 30 L -30 30 Z", // Boxy
+                fill: 'none', stroke: '#3498db', 'stroke-width': 3
+            }));
+
+            // Right: Boltz-2 (Orange - Refolded)
+            const g2 = createEl('g', { transform: 'translate(100, 0)' });
+            scene.appendChild(g2);
+            g2.appendChild(createEl('text', { y: -60, 'text-anchor': 'middle', fill: '#e67e22', 'font-size': 12 }, "Refolded"));
+
+            const path2 = createEl('path', {
+                d: "M -30 -30 L 30 -30 L 30 30 L -30 30 Z",
+                fill: 'none', stroke: '#e67e22', 'stroke-width': 3, 'stroke-dasharray': '5,5'
+            });
+            g2.appendChild(path2);
+
+            // RMSD Overlay
+            const overlay = createEl('path', {
+                d: "M -30 -30 L 30 -30 L 30 30 L -30 30 Z",
+                fill: 'none', stroke: '#e67e22', 'stroke-width': 3, opacity: 0,
+                transform: 'translate(-100, 0)' // Overlay on left
+            });
+            scene.appendChild(overlay);
+
+            // Checkmark
+            const check = createEl('text', {
+                x: 0, y: 10, 'text-anchor': 'middle', fill: '#2ecc71', 'font-size': 40, opacity: 0, 'font-weight': 'bold'
+            });
+            check.textContent = "✓";
+            scene.appendChild(check);
+
+            let t = 0;
+            function animate() {
+                t += 0.04;
+
+                // 1. Refolded moves to overlay original
+                if (t < 3) {
+                    const prog = Math.min(1, t / 2);
+                    const x = 100 - prog * 200; // 100 to -100
+                    g2.setAttribute('transform', `translate(${x}, 0)`);
+                } else {
+                    // 2. Match & Checkmark
+                    check.setAttribute('opacity', Math.min(1, (t - 3)));
+
+                    // Update Metrics
+                    metricsGroup.setAttribute('opacity', 1);
+                    barRmsd.setAttribute('width', 95); // Good accuracy
+                    barAffinity.setAttribute('width', 0);
+                    barPlddt.setAttribute('width', 0);
+                }
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderStep4() {
+            drawTarget(scene, -50, 0, 1.5);
+
+            // Binder locked in
+            const binder = createEl('path', {
+                d: "M -20 10 C 0 10, 10 20, -20 30", // Simple shape fitting
+                fill: '#e67e22', stroke: 'none',
+                transform: 'translate(-20, 0) scale(1.5)'
+            });
+            scene.appendChild(binder);
+
+            // Magnet icon visualizing affinity
+            const magnet = createEl('g', { transform: 'translate(100, 0) rotate(-45)' });
+            scene.appendChild(magnet);
+
+            // U shape
+            magnet.appendChild(createEl('path', {
+                d: "M -20 -20 L -20 0 A 20 20 0 0 0 20 0 L 20 -20",
+                fill: 'none', stroke: '#e74c3c', 'stroke-width': 8
+            }));
+            magnet.appendChild(createEl('rect', { x: -24, y: -20, width: 8, height: 10, fill: '#bdc3c7' }));
+            magnet.appendChild(createEl('rect', { x: 16, y: -20, width: 8, height: 10, fill: '#bdc3c7' }));
+
+            // Attraction waves
+            const waves = createEl('g', { opacity: 0 });
+            scene.appendChild(waves);
+            waves.appendChild(createEl('path', { d: "M 40 0 Q 60 0 80 0", stroke: '#e74c3c', 'stroke-width': 2, 'stroke-dasharray': '3,3' }));
+
+            let t = 0;
+            function animate() {
+                t += 0.1;
+
+                // Magnet Pulse
+                const s = 1 + Math.sin(t) * 0.1;
+                magnet.setAttribute('transform', `translate(100, 0) rotate(-45) scale(${s})`);
+
+                // Update Metrics
+                metricsGroup.setAttribute('opacity', 1);
+                barRmsd.setAttribute('width', 95);
+                barAffinity.setAttribute('width', 90); // Strong binding
+                barPlddt.setAttribute('width', 0);
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderStep5() {
+            // Layout: [Protein (-240)] --- [Bar Chart (0)] --- [Radar Chart (260)]
+
+            // 1. Structure Group (Left) - Scanning Visualization
+            const structGroup = createEl('g', { transform: 'translate(-240, 0)' });
+            scene.appendChild(structGroup);
+
+            // Draw Target & Binder (Reusing geometry)
+            drawTarget(structGroup, 0, 0, 1.5);
+
+            const binder = createEl('path', {
+                d: "M -20 10 C 0 10, 10 20, -20 30",
+                fill: '#e67e22', stroke: 'none',
+                transform: 'translate(-20, 0) scale(1.5)'
+            });
+            structGroup.appendChild(binder);
+
+            // Scanning Line
+            const scanner = createEl('line', {
+                x1: -60, y1: -50, x2: -60, y2: 50,
+                stroke: '#2ecc71', 'stroke-width': 2, 'stroke-dasharray': '4,2',
+                opacity: 0
+            });
+            structGroup.appendChild(scanner);
+
+            // 2. Analysis Dashboard (Center & Right)
+            const dashboard = createEl('g', { transform: 'translate(0, 0)', opacity: 0 });
+            scene.appendChild(dashboard);
+
+            // A. Bar Chart (Center)
+            const barGroup = createEl('g', { transform: 'translate(55, -25)' }); // Centered around 0
+            dashboard.appendChild(barGroup);
+
+            // Axes (centered around origin)
+            barGroup.appendChild(createEl('line', { x1: -50, y1: 50, x2: 50, y2: 50, stroke: '#bdc3c7', 'stroke-width': 1 }));
+            barGroup.appendChild(createEl('line', { x1: -50, y1: 0, x2: -50, y2: 50, stroke: '#bdc3c7', 'stroke-width': 1 }));
+
+            const barData = [30, 45, 25];
+            const barLabels = ['VdW', 'Elec', 'H-B'];
+            const bars = [];
+
+            barData.forEach((h, i) => {
+                const bar = createEl('rect', {
+                    x: -35 + i * 30, y: 50, width: 15, height: 0, fill: '#3498db'
+                });
+                barGroup.appendChild(bar);
+                bars.push({ el: bar, h: h });
+
+                const lbl = createEl('text', {
+                    x: -28 + i * 30, y: 62, 'text-anchor': 'middle', 'font-size': 9, fill: '#7f8c8d'
+                });
+                lbl.textContent = barLabels[i];
+                barGroup.appendChild(lbl);
+            });
+
+            // B. Radar Chart (Right)
+            const radarGroup = createEl('g', { transform: 'translate(260, 0)' });
+            dashboard.appendChild(radarGroup);
+
+            [15, 30].forEach(r => {
+                radarGroup.appendChild(createEl('circle', { r: r, fill: 'none', stroke: '#ecf0f1' }));
+            });
+            radarGroup.appendChild(createEl('path', { d: "M 0 -30 L 0 30 M -30 0 L 30 0", stroke: '#ecf0f1' }));
+
+            const radarPoly = createEl('polygon', {
+                points: "0,-25 25,-5 5,25 -20,15 -15,-20",
+                fill: 'rgba(46, 204, 113, 0.2)', stroke: '#2ecc71', 'stroke-width': 1.5,
+                transform: 'scale(0)'
+            });
+            radarGroup.appendChild(radarPoly);
+
+            // Hide metrics box explicitly
+            metricsGroup.setAttribute('opacity', 0);
+
+            // Animation Loop
+            let t = 0;
+            function animate() {
+                t += 0.03;
+
+                // 1. Scanning Effect
+                if (t < 2) {
+                    scanner.setAttribute('opacity', 1);
+                    const scanX = (Math.sin(t * 3) + 1) * 60;
+                    scanner.setAttribute('transform', `translate(${scanX}, 0)`);
+                } else {
+                    scanner.setAttribute('opacity', 0);
+                }
+
+                // 2. Reveal Dashboard
+                if (t > 1.5) {
+                    const fade = Math.min(1, (t - 1.5) * 2);
+                    dashboard.setAttribute('opacity', fade);
+
+                    bars.forEach(b => {
+                        const h = b.h * fade;
+                        b.el.setAttribute('height', h);
+                        b.el.setAttribute('y', 50 - h);
+                    });
+
+                    radarPoly.setAttribute('transform', `scale(${fade})`);
+
+                    // Keep metrics hidden for this step as requested
+                    metricsGroup.setAttribute('opacity', 0);
+                }
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderStep6() {
+            // Funnel / Selection Visualization
+
+            // Create many small dots representing candidates
+            const candidates = [];
+            const cols = 5;
+            const rows = 4;
+            const spacing = 30;
+            const startX = -60; // Centered: (5-1)*30 = 120 width. -60 to +60
+            const startY = -60;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const dot = createEl('circle', {
+                        cx: startX + c * spacing,
+                        cy: startY + r * spacing,
+                        r: 5,
+                        fill: '#bdc3c7', // grey initially
+                        opacity: 0
+                    });
+                    scene.appendChild(dot);
+                    candidates.push({ el: dot, r, c, selected: false });
+                }
+            }
+
+            // Label
+            const label = createEl('text', {
+                x: 0, y: 80, 'text-anchor': 'middle',
+                fill: '#7f8c8d', 'font-size': 14, opacity: 0
+            });
+            label.textContent = "Filtering Candidates...";
+            scene.appendChild(label);
+
+            // Select a few "winners" to be diverse
+            // Let's pick 3 distinct ones
+            const winners = [2, 10, 18]; // indices
+            winners.forEach(idx => candidates[idx].selected = true);
+
+            let t = 0;
+            function animate() {
+                t += 0.05;
+
+                // 1. Appear
+                if (t < 1) {
+                    candidates.forEach((c, i) => {
+                        c.el.setAttribute('opacity', Math.min(1, t * 2));
+                    });
+                    label.setAttribute('opacity', Math.min(1, t * 2));
+                }
+                // 2. Evaluate (flash colors)
+                else if (t < 3) {
+                    candidates.forEach((c, i) => {
+                        if (!c.selected && Math.random() > 0.9) {
+                            c.el.setAttribute('fill', '#e74c3c'); // Reject flash
+                            setTimeout(() => c.el.setAttribute('fill', '#bdc3c7'), 200);
+                        }
+                    });
+                }
+                // 3. Select Winners
+                else {
+                    candidates.forEach((c, i) => {
+                        if (c.selected) {
+                            c.el.setAttribute('fill', '#2ecc71'); // Green
+                            c.el.setAttribute('r', 8); // Enlarge
+                            c.el.setAttribute('stroke', 'white');
+                            c.el.setAttribute('stroke-width', 2);
+                        } else {
+                            c.el.setAttribute('opacity', 0.2); // Fade others
+                        }
+                    });
+                    label.textContent = "Top Candidates Selected (Quality-Diversity)";
+                    label.setAttribute('fill', '#2ecc71');
+                    label.setAttribute('font-weight', 'bold');
+                }
+
+                // Metrics final state
+                metricsGroup.setAttribute('opacity', 1);
+                barRmsd.setAttribute('width', 95);
+                barAffinity.setAttribute('width', 90);
+                barPlddt.setAttribute('width', 92);
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+
+        // Start
+        goToStep(1);
+
+    })();
+</script>

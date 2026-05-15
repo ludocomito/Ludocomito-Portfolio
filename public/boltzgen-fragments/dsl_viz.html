@@ -1,0 +1,395 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 720px) {
+        .dsl-viz > div:first-of-type {
+            flex-direction: column;
+        }
+
+        .dsl-viz > div:first-of-type > div {
+            min-width: 0 !important;
+        }
+    }
+</style>
+
+<div class="dsl-viz"
+    style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- Left: DSL / Code Panel -->
+        <div
+            style="flex: 1; min-width: 300px; background: #2c3e50; border-radius: 8px; padding: 20px; font-family: 'Monaco', 'Consolas', monospace; font-size: 14px; color: #ecf0f1; position: relative; overflow: hidden;">
+            <div style="margin-bottom: 10px; color: #bdc3c7; font-size: 12px;">input_specs.yaml</div>
+
+            <div class="code-line" data-target="target-file">
+                <span style="color: #e74c3c;">sequences:</span>
+            </div>
+
+            <!-- Binder Section -->
+            <div class="code-section" id="binder-code">
+                <div class="code-line" data-target="binder">
+                    &nbsp;&nbsp;- <span style="color: #f1c40f;">protein:</span>
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">id:</span> B
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">sequence:</span> <span
+                        class="val">8..18</span>
+                </div>
+                <div class="code-line interactive active" data-feature="cyclic">
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">cyclic:</span> <span class="val">true</span>
+                </div>
+            </div>
+
+            <!-- Target Section -->
+            <div class="code-section" id="target-code">
+                <div class="code-line" data-target="target">
+                    &nbsp;&nbsp;- <span style="color: #f1c40f;">file:</span>
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">path:</span> 1mk5.cif (Streptavidin)
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">structure_groups:</span>
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #7f8c8d;"># Fix structure</span>
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span style="color: #3498db;">group:</span>
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">id:</span> A
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">visibility:</span> 1
+                </div>
+                <div class="code-line">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #7f8c8d;"># Make loop flexible</span>
+                </div>
+                <div class="code-line interactive" data-feature="flexible">
+                    <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span style="color: #3498db;">group:</span>
+                    </div>
+                    <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">id:</span> A
+                    </div>
+                    <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">visibility:</span>
+                        <span class="val" data-role="flex-visibility">0</span>
+                    </div>
+                    <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #3498db;">res_index:</span>
+                        32..42
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; font-size: 12px; color: #95a5a6; font-style: italic;">
+                Click highlighted lines to toggle constraints
+            </div>
+        </div>
+
+        <!-- Right: Visualization Panel -->
+        <div class="viz-container"
+            style="flex: 1; min-width: 300px; background: white; border: 1px solid #eee; border-radius: 8px; height: 350px; position: relative; overflow: hidden;">
+            <svg id="dsl-svg" width="100%" height="100%" viewBox="0 0 400 350" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <filter id="glow-dsl">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                        <feMerge>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                    <!-- Gradient for the barrel to make it look 3D -->
+                    <linearGradient id="barrelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#0288d1;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#29b6f6;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#0288d1;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Scene Group -->
+                <g id="dsl-scene" transform="translate(200, 180)"></g>
+
+                <!-- Labels -->
+                <text x="200" y="330" text-anchor="middle" font-size="12" fill="#95a5a6" id="dsl-status">Generating
+                    Cyclic Binder...</text>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Explanation -->
+    <div id="dsl-explanation"
+        style="margin-top: 15px; padding: 12px; background: #fff; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #555; border-left: 4px solid #3498db; min-height: 60px; display: flex; align-items: center;">
+        <div style="width: 100%;"><strong>Design Specification Language (DSL):</strong> This YAML configuration controls
+            the generation. Here, we
+            request a <strong>cyclic peptide</strong> binder (yellow) for the <strong>Streptavidin</strong> target
+            (blue).
+            We explicitly mark a loop on the target as <strong>flexible</strong> (orange), allowing the model to adjust
+            it
+            for better binding.</div>
+    </div>
+</div>
+
+<style>
+    .dsl-viz {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    .code-line {
+        padding: 2px 0;
+        border-radius: 2px;
+        transition: background 0.2s;
+    }
+
+    .code-line.interactive {
+        cursor: pointer;
+        position: relative;
+        border: 1px dashed rgba(52, 152, 219, 0.5);
+        background: rgba(52, 152, 219, 0.05);
+        border-radius: 4px;
+    }
+
+    .code-line.interactive:hover {
+        background: rgba(52, 152, 219, 0.15);
+        border-color: rgba(52, 152, 219, 0.8);
+        border-style: solid;
+    }
+
+    .code-line.interactive.active .val {
+        color: #2ecc71;
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(46, 204, 113, 0.3);
+    }
+
+    .code-line.interactive:not(.active) .val {
+        color: #e74c3c;
+        /* Disabled state */
+        text-decoration: line-through;
+    }
+</style>
+
+<script>
+    (function () {
+        const svg = document.getElementById('dsl-svg');
+        const scene = document.getElementById('dsl-scene');
+        const statusLabel = document.getElementById('dsl-status');
+        const svgNS = "http://www.w3.org/2000/svg";
+
+        // State
+        const state = {
+            cyclic: true,
+            flexVisibility: 0,
+            flexible: true,
+            length: 12 // Default length
+        };
+
+        const flexVisibilitySpan = document.querySelector('[data-role="flex-visibility"]');
+
+        // Interactivity
+        function updateFlexVisibilityLabel() {
+            if (!flexVisibilitySpan) return;
+            flexVisibilitySpan.textContent = state.flexVisibility;
+        }
+
+        document.querySelectorAll('.code-line.interactive').forEach(el => {
+            el.addEventListener('click', () => {
+                const feature = el.dataset.feature;
+
+                if (feature === 'flexible') {
+                    state.flexVisibility = state.flexVisibility === 0 ? 1 : 0;
+                    state.flexible = state.flexVisibility === 0;
+                    el.classList.toggle('active', state.flexVisibility === 1);
+                    updateFlexVisibilityLabel();
+                } else {
+                    state[feature] = !state[feature];
+                    el.classList.toggle('active', state[feature]);
+                }
+
+                render();
+            });
+        });
+
+        function createEl(type, attrs, content = null) {
+            const el = document.createElementNS(svgNS, type);
+            for (let k in attrs) el.setAttribute(k, attrs[k]);
+            if (content) el.textContent = content;
+            return el;
+        }
+
+        // Scene Elements
+        let animationId = null;
+
+        function render() {
+            // Clear
+            while (scene.firstChild) scene.removeChild(scene.firstChild);
+            if (animationId) cancelAnimationFrame(animationId);
+
+            // --- Colors ---
+            const targetColor = "#0288d1"; // Blue
+            const loopColor = "#e65100"; // Deep Orange
+            const binderColor = "#fbc02d"; // Yellow/Gold
+
+            // --- 1. Draw Streptavidin Barrel (Blue) ---
+            // Stylized beta strands
+            const barrelGroup = createEl('g', { transform: 'translate(-20, 0)' });
+            scene.appendChild(barrelGroup);
+
+            // Strand paths (Arrows pointing up/down to simulate beta sheet)
+            // We'll use paths that look like thick ribbons with arrowheads
+
+            // Strand 1 (Leftmost)
+            barrelGroup.appendChild(createEl('path', {
+                d: "M -50 60 Q -45 0 -50 -60 L -30 -70 L -25 -60 Q -20 0 -25 60 Z",
+                fill: "url(#barrelGrad)", stroke: "#01579b", "stroke-width": 1
+            }));
+
+            // Strand 2
+            barrelGroup.appendChild(createEl('path', {
+                d: "M -15 50 Q -10 -10 -15 -70 L 5 -80 L 10 -70 Q 15 -10 10 50 Z",
+                fill: "url(#barrelGrad)", stroke: "#01579b", "stroke-width": 1
+            }));
+
+            // Strand 3 (Rightmost)
+            barrelGroup.appendChild(createEl('path', {
+                d: "M 20 40 Q 25 -20 20 -80 L 40 -90 L 45 -80 Q 50 -20 45 40 Z",
+                fill: "url(#barrelGrad)", stroke: "#01579b", "stroke-width": 1
+            }));
+
+            // Connecting loops (thin lines)
+            const connectorGroup = createEl('g', { stroke: targetColor, "stroke-width": 2, fill: "none" });
+            barrelGroup.insertBefore(connectorGroup, barrelGroup.firstChild);
+            connectorGroup.appendChild(createEl('path', { d: "M -25 60 Q -20 70 -15 50" }));
+            connectorGroup.appendChild(createEl('path', { d: "M 10 50 Q 15 60 20 40" }));
+
+
+            // --- 2. Flexible Loop (Orange, Region 3) ---
+            // Extends from bottom left area
+            const loopGroup = createEl('g', { transform: 'translate(-60, 30)' });
+            scene.appendChild(loopGroup);
+
+            // Fixed anchors for the loop
+            const p1 = { x: 10, y: 20 }; // Connected to Strand 1 bottom
+            const p2 = { x: 50, y: 0 };  // Connected to something else
+
+            // The loop itself
+            const loopPath = createEl('path', {
+                fill: 'none', stroke: state.flexible ? loopColor : targetColor,
+                'stroke-width': 6, 'stroke-linecap': 'round'
+            });
+            loopGroup.appendChild(loopPath);
+
+            // Marker '3'
+            const marker3 = createEl('g', { transform: 'translate(-20, 20)' });
+            marker3.appendChild(createEl('circle', { r: 10, fill: 'white', stroke: loopColor, "stroke-width": 2 }));
+            marker3.appendChild(createEl('text', { y: 4, "text-anchor": "middle", fill: loopColor, "font-weight": "bold", "font-size": 12 }, "3"));
+            scene.appendChild(marker3);
+
+            // Marker '2' (On the blue barrel)
+            const marker2 = createEl('g', { transform: 'translate(40, 0)' });
+            marker2.appendChild(createEl('circle', { r: 10, fill: 'white', stroke: targetColor, "stroke-width": 2 }));
+            marker2.appendChild(createEl('text', { y: 4, "text-anchor": "middle", fill: targetColor, "font-weight": "bold", "font-size": 12 }, "2"));
+            scene.appendChild(marker2);
+
+
+            // --- 3. Binder (Yellow, Region 1) ---
+            // Floating near top right
+            const binderGroup = createEl('g', { transform: 'translate(40, -80)' });
+            scene.appendChild(binderGroup);
+
+            const binderStrand = createEl('path', {
+                fill: 'none', stroke: binderColor, 'stroke-width': 5, opacity: 0.9
+            });
+            binderGroup.appendChild(binderStrand);
+
+            // Marker '1'
+            const marker1 = createEl('g', { transform: 'translate(40, -20)' });
+            marker1.appendChild(createEl('circle', { r: 10, fill: 'white', stroke: binderColor, "stroke-width": 2 }));
+            marker1.appendChild(createEl('text', { y: 4, "text-anchor": "middle", fill: binderColor, "font-weight": "bold", "font-size": 12 }, "1"));
+            scene.appendChild(marker1);
+
+
+            // --- Animation ---
+            let t = 0;
+            function animate() {
+                t += 0.03;
+
+                // 1. Animate Flexible Loop
+                // Bezier curve control points wiggle
+                const wiggleX = state.flexible ? Math.sin(t * 2) * 15 : 0;
+                const wiggleY = state.flexible ? Math.cos(t * 1.5) * 15 : 0;
+
+                // Loop shape: P1 -> C1 -> C2 -> P2
+                const dLoop = `M ${p1.x} ${p1.y} C ${p1.x - 40 + wiggleX} ${p1.y + 40 + wiggleY}, ${p2.x - 10 + wiggleX} ${p2.y + 50 + wiggleY}, ${p2.x} ${p2.y}`;
+                loopPath.setAttribute('d', dLoop);
+
+                // 2. Animate Binder (Yellow)
+                // Generate points for the peptide chain
+                const numRes = state.length;
+                const points = [];
+
+                // If cyclic, it's a loop. If linear, it's a squiggly line.
+                const rad = 25;
+
+                let pathD = "";
+
+                if (state.cyclic) {
+                    // Draw a circle/blob
+                    for (let i = 0; i <= numRes; i++) { // +1 to close loop
+                        const angle = (i / numRes) * Math.PI * 2;
+                        // Breathing effect
+                        const r = rad + Math.sin(t * 2 + angle * 3) * 2;
+                        const x = Math.cos(angle) * r;
+                        const y = Math.sin(angle) * r;
+
+                        if (i === 0) pathD = `M ${x} ${y}`;
+                        else pathD += ` L ${x} ${y}`;
+                    }
+                    pathD += " Z";
+                } else {
+                    // Linear chain
+                    // Snake pattern
+                    for (let i = 0; i < numRes; i++) {
+                        const x = (i - numRes / 2) * 8;
+                        const y = Math.sin(i * 0.8 + t * 2) * 10;
+                        if (i === 0) pathD = `M ${x} ${y}`;
+                        else pathD += ` L ${x} ${y}`;
+                    }
+                }
+                binderStrand.setAttribute('d', pathD);
+
+                // Floating effect for entire binder group
+                const floatY = Math.sin(t) * 5;
+                binderGroup.setAttribute('transform', `translate(40, ${-80 + floatY})`);
+                marker1.setAttribute('transform', `translate(50, ${-80 + floatY - 20})`);
+
+                // Status text update
+                let status = `Binder: ${state.length} residues, ${state.cyclic ? 'Cyclic' : 'Linear'} (Yellow)`;
+                status += state.flexible ? " | Loop: Flexible (Orange)" : " | Loop: Rigid (Blue/Gray)";
+                statusLabel.textContent = status;
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // Init
+        updateFlexVisibilityLabel();
+        render();
+
+    })();
+</script>
