@@ -1,0 +1,486 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+</style>
+
+<div class="pairformer-viz" style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+    
+    <!-- Controls -->
+    <div style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee;">
+        <div class="pf-controls-flex" style="display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="pf-play-btn" style="padding: 8px 16px; font-size: 13px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; min-width: 60px; transition: all 0.2s;">
+                    Play
+                </button>
+            </div>
+            
+            <div style="flex-grow: 1;">
+                <label style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #555;">
+                    <span id="pf-phase-name">Phase: Initialization</span>
+                    <span id="pf-step-display">Step 0 / 7</span>
+                </label>
+                <input type="range" id="pf-step-slider" min="0" max="8" step="0.01" value="0" 
+                       style="width: 100%; height: 6px; background: #ddd; border-radius: 3px; outline: none;">
+                <!-- Ticks/Labels for phases could go here -->
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="pf-svg-wrapper">
+    <svg id="pairformer-svg" width="100%" height="400" viewBox="0 0 900 400" style="display: block; margin: 0 auto;">
+        <!-- Definitions for arrows/glows -->
+        <defs>
+            <marker id="arrowhead-blue" markerWidth="10" markerHeight="10" refX="15" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#3498db" />
+            </marker>
+            <marker id="arrowhead-orange" markerWidth="10" markerHeight="10" refX="15" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#e67e22" />
+            </marker>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>
+
+        <!-- Left Panel: Pipeline Progress -->
+        <g transform="translate(200, 50)">
+            <!-- Pipeline Line -->
+            <line x1="20" y1="0" x2="20" y2="300" stroke="#ddd" stroke-width="4" stroke-linecap="round"/>
+            
+            <!-- Steps -->
+            <g id="pf-pipeline-steps">
+                <!-- Populated by JS -->
+            </g>
+        </g>
+
+        <!-- Main Visualization Area (Center/Right) -->
+        <g transform="translate(550, 200) scale(1.5)" id="pf-main-viz">
+            <!-- Graph Elements -->
+            <g id="pf-edges"></g>
+            <g id="pf-nodes"></g>
+            <g id="pf-animations"></g>
+        </g>
+        
+        <!-- Mathematical/Schematic Overlay (Right) -->
+        <g transform="translate(800, 50)" id="pf-math-overlay" opacity="0">
+            <rect x="0" y="0" width="250" height="300" fill="white" stroke="#eee" rx="8" opacity="0.8"/>
+            <text id="pf-math-title" x="20" y="30" font-weight="600" font-size="14" fill="#333">Operation</text>
+            <g id="pf-math-content" transform="translate(20, 60)"></g>
+        </g>
+
+    </svg>
+    </div>
+    
+    <div id="pf-description" style="margin-top: 20px; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="font-size: 12px; text-transform: uppercase; color: #888; letter-spacing: 0.05em; margin-bottom: 5px;">Description</div>
+        <div id="pf-desc-text" style="font-size: 16px; color: #2c3e50; line-height: 1.6; font-weight: 500;">
+            Initialize Sequence (nodes) and Pairwise (edges) representations.
+        </div>
+    </div>
+</div>
+
+    <script>
+    (function() {
+        const svg = document.getElementById('pairformer-svg');
+        const playBtn = document.getElementById('pf-play-btn');
+        const slider = document.getElementById('pf-step-slider');
+        const stepDisplay = document.getElementById('pf-step-display');
+        const phaseName = document.getElementById('pf-phase-name');
+        const descText = document.getElementById('pf-desc-text');
+    
+    const pipelineGroup = document.getElementById('pf-pipeline-steps');
+    const edgesGroup = document.getElementById('pf-edges');
+    const nodesGroup = document.getElementById('pf-nodes');
+    const animGroup = document.getElementById('pf-animations');
+    
+    // --- Configuration ---
+    const phases = [
+        { name: "Inputs", desc: "Start with Sequence features (nodes) and Pairwise features (edges)." },
+        { name: "Tri-Mul Out", desc: "Update edge (i,j) using outgoing edges (i,k) and (j,k). 'Triangular Multiplication Outgoing'" },
+        { name: "Tri-Mul In", desc: "Update edge (i,j) using incoming edges (k,i) and (k,j). 'Triangular Multiplication Incoming'" },
+        { name: "Tri-Attn Start", desc: "Each edge attends to other edges sharing the same starting node. 'Row Attention'" },
+        { name: "Tri-Attn End", desc: "Each edge attends to other edges sharing the same ending node. 'Column Attention'" },
+        { name: "Pair Transition", desc: "Feed-forward network processes each pairwise feature independently." },
+        { name: "Seq-Pair Attn", desc: "Sequence nodes attend to each other, biased by the pairwise features." },
+        { name: "Seq Transition", desc: "Feed-forward network processes each sequence feature independently." }
+    ];
+    const MAX_PHASE_INDEX = phases.length - 1;
+    const END_STEP = MAX_PHASE_INDEX + 0.999;
+    
+    const nodePositions = [
+        { x: 0, y: -100 },   // Top (0)
+        { x: 100, y: 0 },    // Right (1)
+        { x: 0, y: 100 },    // Bottom (2)
+        { x: -100, y: 0 }    // Left (3)
+    ];
+    
+    // Generate Edges (Complete Graph)
+    const edges = [];
+    for(let i=0; i<4; i++) {
+        for(let j=0; j<4; j++) {
+            if(i === j) continue;
+            edges.push({ source: i, target: j });
+        }
+    }
+
+    // --- Setup Pipeline Visuals ---
+    phases.forEach((phase, idx) => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("transform", `translate(0, ${idx * 40})`);
+        g.setAttribute("class", "pipeline-step");
+        g.dataset.idx = idx;
+        
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", 20);
+        circle.setAttribute("cy", 20);
+        circle.setAttribute("r", 8);
+        circle.setAttribute("fill", "#fff");
+        circle.setAttribute("stroke", "#ddd");
+        circle.setAttribute("stroke-width", "2");
+        
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", 40);
+        text.setAttribute("y", 24);
+        text.textContent = phase.name;
+        text.setAttribute("font-size", "12");
+        text.setAttribute("fill", "#999");
+        
+        g.appendChild(circle);
+        g.appendChild(text);
+        pipelineGroup.appendChild(g);
+    });
+
+    // --- Setup Graph Visuals ---
+    // Draw Edges
+    edges.forEach((edge, idx) => {
+        const source = nodePositions[edge.source];
+        const target = nodePositions[edge.target];
+        
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", source.x);
+        line.setAttribute("y1", source.y);
+        line.setAttribute("x2", target.x);
+        line.setAttribute("y2", target.y);
+        line.setAttribute("stroke", "#ddd");
+        line.setAttribute("stroke-width", "2");
+        line.setAttribute("id", `edge-${edge.source}-${edge.target}`);
+        edgesGroup.appendChild(line);
+    });
+    
+    // Draw Nodes
+    nodePositions.forEach((pos, idx) => {
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", pos.x);
+        circle.setAttribute("cy", pos.y);
+        circle.setAttribute("r", 15);
+        circle.setAttribute("fill", "#2c3e50");
+        circle.setAttribute("stroke", "white");
+        circle.setAttribute("stroke-width", "2");
+        circle.setAttribute("id", `node-${idx}`);
+        
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", pos.x);
+        text.setAttribute("y", pos.y + 5);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("fill", "white");
+        text.setAttribute("font-size", "12");
+        text.textContent = idx;
+        
+        nodesGroup.appendChild(circle);
+        nodesGroup.appendChild(text);
+    });
+
+    // --- Animation State ---
+    let isPlaying = false;
+    let isFinished = false;
+    let animationId = null;
+    let lastTime = 0;
+
+    // --- Render Logic ---
+    function updateVisuals(step) {
+        const cappedStep = Math.min(step, END_STEP);
+        const phaseIndex = Math.min(Math.floor(cappedStep), MAX_PHASE_INDEX);
+        const progress = cappedStep - Math.floor(cappedStep);
+        
+        // Update Text
+        if (phases[phaseIndex]) {
+            phaseName.textContent = `Phase: ${phases[phaseIndex].name}`;
+            descText.textContent = phases[phaseIndex].desc;
+        }
+        stepDisplay.textContent = `Step ${Math.min(MAX_PHASE_INDEX, Math.floor(cappedStep))} / ${MAX_PHASE_INDEX}`;
+        
+        // Update Pipeline
+        Array.from(pipelineGroup.children).forEach((g, i) => {
+            const circle = g.children[0];
+            const text = g.children[1];
+            
+            if (i < phaseIndex) {
+                circle.setAttribute("fill", "#3498db");
+                circle.setAttribute("stroke", "#3498db");
+                text.setAttribute("fill", "#3498db");
+                text.setAttribute("font-weight", "bold");
+            } else if (i === phaseIndex) {
+                circle.setAttribute("fill", "#e67e22");
+                circle.setAttribute("stroke", "#e67e22");
+                text.setAttribute("fill", "#e67e22");
+                text.setAttribute("font-weight", "bold");
+            } else {
+                circle.setAttribute("fill", "#fff");
+                circle.setAttribute("stroke", "#ddd");
+                text.setAttribute("fill", "#999");
+                text.setAttribute("font-weight", "normal");
+            }
+        });
+
+        // Reset Graph Style
+        edgesGroup.childNodes.forEach(line => {
+            line.setAttribute("stroke", "#ddd");
+            line.setAttribute("stroke-width", "2");
+            line.setAttribute("stroke-dasharray", "");
+            line.setAttribute("opacity", "1");
+        });
+        nodesGroup.childNodes.forEach((el, i) => {
+            if (i % 2 === 0) { // Circle
+                el.setAttribute("fill", "#2c3e50");
+                el.setAttribute("r", "15");
+                el.setAttribute("opacity", "1");
+            }
+        });
+        animGroup.innerHTML = ''; // Clear active animations
+
+        // Specific Phase Animations
+        if (phaseIndex === 1) { // Tri-Mul Out
+            highlightEdge(0, 1, "#e67e22", 4); // Target
+            highlightEdge(0, 2, "#3498db", 3); // Source 1
+            highlightEdge(1, 2, "#3498db", 3); // Source 2
+            
+            if (progress > 0.2) {
+                createFlowParticle(0, 2, 0.2, 0.8, progress);
+                createFlowParticle(1, 2, 0.2, 0.8, progress);
+            }
+        }
+        else if (phaseIndex === 2) { // Tri-Mul In
+            highlightEdge(0, 1, "#e67e22", 4);
+            highlightEdge(2, 0, "#3498db", 3);
+            highlightEdge(2, 1, "#3498db", 3);
+            
+            if (progress > 0.2) {
+                createFlowParticle(2, 0, 0.2, 0.8, progress);
+                createFlowParticle(2, 1, 0.2, 0.8, progress);
+            }
+        }
+        else if (phaseIndex === 3) { // Tri-Attn Start
+            highlightNode(0, "#e67e22");
+            highlightEdge(0, 1, "#3498db", 3);
+            highlightEdge(0, 2, "#3498db", 3);
+            highlightEdge(0, 3, "#3498db", 3);
+        }
+        else if (phaseIndex === 4) { // Tri-Attn End
+            highlightNode(0, "#e67e22");
+            highlightEdge(1, 0, "#3498db", 3);
+            highlightEdge(2, 0, "#3498db", 3);
+            highlightEdge(3, 0, "#3498db", 3);
+        }
+        else if (phaseIndex === 5) { // Pair Transition
+            edgesGroup.childNodes.forEach(line => {
+                line.setAttribute("stroke", "#e67e22");
+                line.setAttribute("opacity", Math.abs(Math.sin(progress * Math.PI * 2)));
+            });
+        }
+        else if (phaseIndex === 6) { // Seq-Pair Attn
+            highlightNode(0, "#e67e22"); // Query
+            highlightNode(1, "#3498db"); // Key/Value
+            highlightEdge(0, 1, "#9b59b6", 4); // Gate/Bias
+            
+            const r = 15 + Math.sin(progress * Math.PI * 4) * 3;
+            const n0 = document.getElementById('node-0');
+            if(n0) n0.setAttribute("r", r);
+        }
+        else if (phaseIndex === 7) { // Seq Transition
+             nodesGroup.childNodes.forEach((el, i) => {
+                if (i % 2 === 0) {
+                    el.setAttribute("fill", "#e67e22");
+                    el.setAttribute("opacity", Math.abs(Math.sin(progress * Math.PI * 2)));
+                }
+            });
+        }
+    }
+    
+    function highlightEdge(u, v, color, width) {
+        const line = document.getElementById(`edge-${u}-${v}`);
+        if (line) {
+            line.setAttribute("stroke", color);
+            line.setAttribute("stroke-width", width);
+            line.parentNode.appendChild(line);
+        }
+    }
+    
+    function highlightNode(u, color) {
+        const node = document.getElementById(`node-${u}`);
+        if (node) {
+            node.setAttribute("fill", color);
+        }
+    }
+    
+    function createFlowParticle(u, v, startT, endT, currentT) {
+        if (currentT < startT || currentT > endT) return;
+        
+        const t = (currentT - startT) / (endT - startT);
+        
+        const source = nodePositions[u];
+        const target = nodePositions[v];
+        
+        const cx = source.x + (target.x - source.x) * t;
+        const cy = source.y + (target.y - source.y) * t;
+        
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", cx);
+        c.setAttribute("cy", cy);
+        c.setAttribute("r", 4);
+        c.setAttribute("fill", "#e74c3c");
+        animGroup.appendChild(c);
+    }
+
+    // --- Control Logic ---
+    function setPlayButtonState(state) {
+        if (state === "pause") {
+            playBtn.textContent = "Pause";
+            playBtn.style.background = "#e74c3c";
+        } else if (state === "reset") {
+            playBtn.textContent = "Reset";
+            playBtn.style.background = "#9b59b6";
+        } else {
+            playBtn.textContent = "Play";
+            playBtn.style.background = "#3498db";
+        }
+    }
+
+    function stopAnimationLoop() {
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+    }
+
+    function finishAnimation() {
+        stopAnimationLoop();
+        isPlaying = false;
+        isFinished = true;
+        slider.value = END_STEP;
+        updateVisuals(END_STEP);
+        setPlayButtonState("reset");
+    }
+
+    function resetAnimation() {
+        isFinished = false;
+        isPlaying = false;
+        stopAnimationLoop();
+        slider.value = 0;
+        updateVisuals(0);
+        setPlayButtonState("play");
+    }
+
+    function togglePlay() {
+        if (isFinished) {
+            resetAnimation();
+            return;
+        }
+
+        isPlaying = !isPlaying;
+        setPlayButtonState(isPlaying ? "pause" : "play");
+        
+        if (isPlaying) {
+            lastTime = performance.now();
+            animationId = requestAnimationFrame(loop);
+        } else {
+            stopAnimationLoop();
+        }
+    }
+
+    function loop(now) {
+        if (!isPlaying) return;
+        
+        const dt = (now - lastTime) / 1000;
+        lastTime = now;
+        
+        // Cap dt to prevent huge jumps if tab was backgrounded
+        const safeDt = Math.min(dt, 0.1);
+        
+        const speed = 0.5; // Default speed
+        let current = parseFloat(slider.value);
+        
+        current += speed * safeDt;
+
+        if (current >= END_STEP) {
+            finishAnimation();
+            return;
+        }
+
+        slider.value = current;
+        updateVisuals(current);
+
+        animationId = requestAnimationFrame(loop);
+    }
+
+    playBtn.addEventListener('click', togglePlay);
+    
+    slider.addEventListener('input', () => {
+        // Pause if user drags slider
+        if (isPlaying) {
+            togglePlay(); 
+        }
+        if (isFinished) {
+            isFinished = false;
+            setPlayButtonState("play");
+        }
+        updateVisuals(parseFloat(slider.value));
+    });
+
+    // Init
+    updateVisuals(0);
+
+})();
+</script>
+
+<style>
+.pairformer-viz circle, .pairformer-viz line, .pairformer-viz text {
+    transition: fill 0.2s, stroke 0.2s;
+}
+.pairformer-viz input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #3498db;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+@media (max-width: 600px) {
+    .pf-controls-flex {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .pf-svg-wrapper {
+        padding-bottom: 10px;
+        width: 100%;
+    }
+    #pairformer-svg {
+        min-width: 0;
+    }
+}
+</style>

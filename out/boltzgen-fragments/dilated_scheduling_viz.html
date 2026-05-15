@@ -1,0 +1,343 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+</style>
+
+<div class="dilated-schedule-viz" style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+    
+    <!-- Controls -->
+    <div style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee;">
+        <div class="dilated-controls-flex" style="display: flex; align-items: center; gap: 20px;">
+            <button id="play-pause-btn" style="padding: 8px 24px; font-size: 13px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; min-width: 80px; transition: all 0.2s;">
+                Play
+            </button>
+            
+            <div style="flex-grow: 1;">
+                <label style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #555;">
+                    <span>Step Progress</span>
+                    <span id="step-display">0 / 30</span>
+                </label>
+                <input type="range" id="step-slider" min="0" max="30" step="0.1" value="0" 
+                       style="width: 100%; height: 6px; background: #ddd; border-radius: 3px; outline: none;">
+            </div>
+        </div>
+    </div>
+
+    <div class="dilated-svg-wrapper">
+    <svg id="dilated-schedule-svg" width="100%" height="350" viewBox="0 0 900 350" style="display: block; margin: 0 auto;">
+        
+        <!-- Uniform Schedule -->
+        <g transform="translate(0, 50)">
+            <text x="50" y="-15" font-size="14" font-weight="600" fill="#555">Uniform Schedule</text>
+            <line x1="50" y1="20" x2="850" y2="20" stroke="#ddd" stroke-width="4" stroke-linecap="round"/>
+            
+            <!-- Uniform Ticks -->
+            <g id="uniform-ticks"></g>
+            
+            <!-- Uniform Particle -->
+            <circle id="uniform-particle" cx="50" cy="20" r="8" fill="#e74c3c" stroke="white" stroke-width="2" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));"/>
+        </g>
+        
+        <!-- Connection Lines -->
+        <g id="connection-lines" opacity="0.15"></g>
+        
+        <!-- Dilated Schedule -->
+        <g transform="translate(0, 200)">
+            <text x="50" y="-15" font-size="14" font-weight="600" fill="#555">Dilated Schedule</text>
+            <!-- Main timeline background -->
+            <line x1="50" y1="20" x2="850" y2="20" stroke="#ddd" stroke-width="4" stroke-linecap="round"/>
+            
+            <!-- Critical Region Highlight -->
+            <rect x="530" y="0" width="160" height="40" fill="#e67e22" opacity="0.1" rx="4"/>
+            <line x1="530" y1="45" x2="690" y2="45" stroke="#e67e22" stroke-width="2"/>
+            <text x="610" y="65" text-anchor="middle" font-size="12" fill="#e67e22" font-weight="600">Critical Window τ=[0.6, 0.8]</text>
+            
+            <!-- Dilated Ticks -->
+            <g id="dilated-ticks"></g>
+            
+            <!-- Dilated Particle -->
+            <circle id="dilated-particle" cx="50" cy="20" r="8" fill="#e74c3c" stroke="white" stroke-width="2" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));"/>
+        </g>
+        
+        <!-- Legend -->
+        <g transform="translate(50, 310)">
+            <circle cx="0" cy="0" r="4" fill="#3498db"/>
+            <text x="15" y="4" font-size="12" fill="#666">Standard Step</text>
+            
+            <circle cx="120" cy="0" r="4" fill="#e67e22"/>
+            <text x="135" y="4" font-size="12" fill="#666">High-Density Step</text>
+            
+            <circle cx="250" cy="0" r="5" fill="#e74c3c" stroke="white" stroke-width="1.5"/>
+            <text x="265" y="4" font-size="12" fill="#666">Current Step</text>
+        </g>
+
+    </svg>
+    </div>
+    
+    <!-- Explanation -->
+    <div style="margin-top: 15px; padding: 12px; background: #fff; border-radius: 4px; font-size: 12px; line-height: 1.6; color: #555; border-left: 3px solid #e67e22; border: 1px solid #eee; border-left-width: 3px;">
+        <p style="margin: 0;"><strong>Visualizing Speed:</strong> Press <strong>Play</strong> to see the progression of denoising steps. Notice how the Dilated particle (bottom) moves quickly at first, then <strong>slows down</strong> significantly in the orange critical window to take many fine-grained steps, before speeding up again at the end.</p>
+    </div>
+</div>
+
+<script>
+(function() {
+    const svg = document.getElementById('dilated-schedule-svg');
+    const uniformTicksGroup = document.getElementById('uniform-ticks');
+    const dilatedTicksGroup = document.getElementById('dilated-ticks');
+    const connectionLinesGroup = document.getElementById('connection-lines');
+    
+    const uniformParticle = document.getElementById('uniform-particle');
+    const dilatedParticle = document.getElementById('dilated-particle');
+    
+    const playBtn = document.getElementById('play-pause-btn');
+    const slider = document.getElementById('step-slider');
+    const stepDisplay = document.getElementById('step-display');
+    
+    const startX = 50;
+    const endX = 850;
+    const width = endX - startX;
+    const numSteps = 30; 
+    
+    // Animation State
+    let isPlaying = false;
+    let animationId = null;
+    
+    // --- Helper: Mapping Function ---
+    // Maps step index (0..numSteps) to time fraction (0..1)
+    const region1Split = numSteps * 0.25; // 7.5
+    const region2Split = numSteps * 0.75; // 22.5
+    
+    function getDilatedFraction(stepIndex) {
+        if (stepIndex <= region1Split) {
+            // Region 1: 0 -> 0.25 steps map to 0 -> 0.6 time
+            return (stepIndex / region1Split) * 0.6;
+        } else if (stepIndex <= region2Split) {
+            // Region 2: 0.25 -> 0.75 steps map to 0.6 -> 0.8 time
+            const progress = (stepIndex - region1Split) / (region2Split - region1Split);
+            return 0.6 + progress * 0.2;
+        } else {
+            // Region 3: 0.75 -> 1.0 steps map to 0.8 -> 1.0 time
+            const progress = (stepIndex - region2Split) / (numSteps - region2Split);
+            return 0.8 + progress * 0.2;
+        }
+    }
+    
+    function getUniformFraction(stepIndex) {
+        return stepIndex / numSteps;
+    }
+
+    // --- Initialization ---
+    
+    // Generate Ticks
+    for (let i = 0; i <= numSteps; i++) {
+        // Uniform Ticks
+        const ut = getUniformFraction(i);
+        const ucx = startX + ut * width;
+        const uCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        uCircle.setAttribute("cx", ucx);
+        uCircle.setAttribute("cy", 20);
+        uCircle.setAttribute("r", 3);
+        uCircle.setAttribute("fill", "#3498db");
+        uniformTicksGroup.appendChild(uCircle);
+        
+        // Dilated Ticks
+        const dt = getDilatedFraction(i);
+        const dcx = startX + dt * width;
+        const dCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dCircle.setAttribute("cx", dcx);
+        dCircle.setAttribute("cy", 20);
+        
+        const isCritical = dt >= 0.59 && dt <= 0.81;
+        dCircle.setAttribute("r", isCritical ? 3.5 : 3);
+        dCircle.setAttribute("fill", isCritical ? "#e67e22" : "#3498db");
+        dilatedTicksGroup.appendChild(dCircle);
+        
+        // Lines
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", ucx);
+        line.setAttribute("y1", 74); 
+        line.setAttribute("x2", dcx);
+        line.setAttribute("y2", 200);
+        line.setAttribute("stroke", isCritical ? "#e67e22" : "#3498db");
+        line.setAttribute("stroke-width", "1");
+        connectionLinesGroup.appendChild(line);
+        
+        // Store for hover
+        uCircle.data_idx = i;
+        dCircle.data_idx = i;
+        line.data_idx = i;
+    }
+    
+    // --- Logic ---
+    
+    function updateParticles(stepIndex) {
+        // Clamp
+        stepIndex = Math.max(0, Math.min(numSteps, stepIndex));
+        
+        // Uniform Pos
+        const ut = getUniformFraction(stepIndex);
+        const ucx = startX + ut * width;
+        uniformParticle.setAttribute('cx', ucx);
+        
+        // Dilated Pos
+        const dt = getDilatedFraction(stepIndex);
+        const dcx = startX + dt * width;
+        dilatedParticle.setAttribute('cx', dcx);
+        
+        // UI
+        stepDisplay.textContent = `${Math.round(stepIndex)} / ${numSteps}`;
+        if (document.activeElement !== slider) {
+             slider.value = stepIndex;
+        }
+        
+        // Highlight connection line if close to an integer step
+        // (Optional polish)
+    }
+    
+    function play() {
+        isPlaying = true;
+        playBtn.textContent = "Pause";
+        
+        let lastTime = performance.now();
+        const speed = 5; // Steps per second
+        
+        function loop(now) {
+            if (!isPlaying) return;
+            
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+            
+            let currentVal = parseFloat(slider.value);
+            let nextVal = currentVal + speed * dt;
+            
+            if (nextVal >= numSteps) {
+                nextVal = numSteps;
+                pause();
+            }
+            
+            slider.value = nextVal;
+            updateParticles(nextVal);
+            
+            if (isPlaying) animationId = requestAnimationFrame(loop);
+        }
+        animationId = requestAnimationFrame(loop);
+    }
+    
+    function pause() {
+        isPlaying = false;
+        playBtn.textContent = "Play";
+        if (animationId) cancelAnimationFrame(animationId);
+    }
+    
+    playBtn.addEventListener('click', () => {
+        const val = parseFloat(slider.value);
+        if (val >= numSteps) {
+            slider.value = 0;
+            updateParticles(0);
+        }
+        
+        if (isPlaying) pause();
+        else play();
+    });
+    
+    slider.addEventListener('input', () => {
+        // Pause if user drags
+        if (isPlaying) pause();
+        updateParticles(parseFloat(slider.value));
+    });
+    
+    // --- Hover Interaction (Re-added) ---
+    const circles = [];
+    for (let i = 0; i <= numSteps; i++) {
+        circles.push({
+            u: uniformTicksGroup.children[i],
+            d: dilatedTicksGroup.children[i],
+            l: connectionLinesGroup.children[i]
+        });
+    }
+    
+    function highlight(idx) {
+        if (!circles[idx]) return;
+        const c = circles[idx];
+        c.l.setAttribute('stroke-width', '3');
+        c.l.setAttribute('opacity', '0.8');
+        c.u.setAttribute('r', '5');
+        c.d.setAttribute('r', '5');
+    }
+    
+    function unhighlight(idx) {
+        if (!circles[idx]) return;
+        const c = circles[idx];
+        c.l.setAttribute('stroke-width', '1');
+        c.l.setAttribute('opacity', '1'); // group opacity handles the 0.15
+        c.u.setAttribute('r', '3');
+        
+        const isCritical = c.d.getAttribute('fill') === '#e67e22';
+        c.d.setAttribute('r', isCritical ? '3.5' : '3');
+    }
+    
+    circles.forEach((c, idx) => {
+        const h = () => highlight(idx);
+        const u = () => unhighlight(idx);
+        c.u.addEventListener('mouseenter', h); c.u.addEventListener('mouseleave', u);
+        c.d.addEventListener('mouseenter', h); c.d.addEventListener('mouseleave', u);
+    });
+    
+})();
+</script>
+
+<style>
+.dilated-schedule-viz circle {
+    transition: r 0.2s, fill 0.2s;
+    cursor: pointer;
+}
+.dilated-schedule-viz line {
+    transition: stroke-width 0.2s, opacity 0.2s;
+}
+.dilated-schedule-viz input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+.dilated-schedule-viz input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #3498db;
+    cursor: pointer;
+    border-radius: 50%;
+}
+.dilated-schedule-viz input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #3498db;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+}
+
+@media (max-width: 600px) {
+    .dilated-controls-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    .dilated-svg-wrapper {
+        padding-bottom: 10px;
+        width: 100%;
+    }
+    #dilated-schedule-svg {
+        min-width: 0;
+    }
+}
+</style>

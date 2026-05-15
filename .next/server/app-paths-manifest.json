@@ -1,5 +1,5 @@
 {
-  "/projects/page": "app/projects/page.js",
-  "/projects/ncap-project/page": "app/projects/ncap-project/page.js",
-  "/page": "app/page.js"
+  "/icon.ico/route": "app/icon.ico/route.js",
+  "/blog/page": "app/blog/page.js",
+  "/blog/anatomy-of-boltzgen/page": "app/blog/anatomy-of-boltzgen/page.js"
 }

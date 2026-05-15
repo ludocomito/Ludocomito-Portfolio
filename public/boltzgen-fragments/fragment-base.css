@@ -1,0 +1,51 @@
+html,
+body {
+  font-size: 15px;
+}
+
+button,
+label,
+input,
+select {
+  font-size: 14px !important;
+}
+
+svg text {
+  font-size: 1.08em;
+}
+
+[style*="font-size: 10px"] {
+  font-size: 11px !important;
+}
+
+[style*="font-size: 11px"] {
+  font-size: 12px !important;
+}
+
+[style*="font-size: 12px"] {
+  font-size: 13px !important;
+}
+
+[style*="font-size: 13px"] {
+  font-size: 14px !important;
+}
+
+[style*="font-size: 14px"] {
+  font-size: 15px !important;
+}
+
+[style*="font-size: 16px"] {
+  font-size: 17px !important;
+}
+
+[style*="font-size: 18px"] {
+  font-size: 19px !important;
+}
+
+[style*="font-size: 20px"] {
+  font-size: 21px !important;
+}
+
+[style*="font-size: 24px"] {
+  font-size: 25px !important;
+}

@@ -4,9 +4,48 @@ import { useEffect, useRef, useState } from 'react'
 
 export default function HomeVideo() {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
   const [showPlayButton, setShowPlayButton] = useState(false)
 
   useEffect(() => {
+    type IdleWindow = Window &
+      typeof globalThis & {
+        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+        cancelIdleCallback?: (handle: number) => void
+      }
+
+    const win = window as IdleWindow
+    let timeoutId: number | undefined
+    let idleId: number | undefined
+
+    const queueVideoLoad = () => {
+      if (win.requestIdleCallback) {
+        idleId = win.requestIdleCallback(() => setShouldLoadVideo(true), { timeout: 1500 })
+      } else {
+        timeoutId = window.setTimeout(() => setShouldLoadVideo(true), 700)
+      }
+    }
+
+    if (document.readyState === 'complete') {
+      queueVideoLoad()
+    } else {
+      window.addEventListener('load', queueVideoLoad, { once: true })
+    }
+
+    return () => {
+      window.removeEventListener('load', queueVideoLoad)
+      if (idleId !== undefined && win.cancelIdleCallback) {
+        win.cancelIdleCallback(idleId)
+      }
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!shouldLoadVideo) return
+
     const video = videoRef.current
     if (!video) return
 
@@ -14,29 +53,28 @@ export default function HomeVideo() {
 
     const showLastFrame = () => {
       if (video && isFinite(video.duration)) {
-        video.currentTime = video.duration
+        video.currentTime = Math.max(video.duration - 0.05, 0)
       }
     }
 
     if (sessionPlayed) {
-      if (video.readyState >= 1) { // HAVE_METADATA
+      video.load()
+      if (video.readyState >= 1) {
         showLastFrame()
       } else {
         video.addEventListener('loadedmetadata', showLastFrame, { once: true })
       }
       return
     }
-    
-    // The `autoplay` attribute should handle this, but we can have this as a fallback.
-    // The `.catch()` is important to prevent unhandled promise rejection errors.
+
+    video.load()
     video.play().catch(() => {
-      // If autoplay fails, show the play button.
       setShowPlayButton(true)
     })
 
     const handleEnded = () => {
       sessionStorage.setItem('home-video-played', 'true')
-      setShowPlayButton(false) // Hide button if it was visible
+      setShowPlayButton(false)
     }
 
     video.addEventListener('ended', handleEnded)
@@ -45,7 +83,7 @@ export default function HomeVideo() {
       video.removeEventListener('ended', handleEnded)
       video.removeEventListener('loadedmetadata', showLastFrame)
     }
-  }, [])
+  }, [shouldLoadVideo])
 
   const handlePlayClick = () => {
     const video = videoRef.current
@@ -64,18 +102,18 @@ export default function HomeVideo() {
     <div className="w-full max-w-64 mx-auto mb-12 md:mb-20 relative">
       <video
         ref={videoRef}
-        className="w-full h-auto rounded-lg shadow-lg"
+        className="w-full aspect-square object-cover rounded-lg shadow-lg"
+        width={512}
+        height={512}
         muted
         playsInline
-        autoPlay // Using the attribute is more declarative and often more reliable
-        preload="metadata"
+        preload={shouldLoadVideo ? "metadata" : "none"}
         controls={false}
       >
-        <source src="/home_video.mp4" type="video/mp4" />
+        {shouldLoadVideo ? <source src="/home_video.mp4" type="video/mp4" /> : null}
         Your browser does not support the video tag.
       </video>
-      
-      {/* Show play button overlay if autoplay fails */}
+
       {showPlayButton && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
           <button
@@ -95,4 +133,4 @@ export default function HomeVideo() {
       )}
     </div>
   )
-} 
+}

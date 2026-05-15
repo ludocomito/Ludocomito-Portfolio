@@ -1,145 +1,93 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Github } from "lucide-react"
-import Latex from "react-latex-next"
+import { ArticleFigure, DistillArticle } from "@/components/distill-article"
 
-export default function GradientDescentProject() {
+const toc = [
+  { id: "the-project", title: "The project" },
+  { id: "quantitative-results", title: "Quantitative results" },
+  { id: "qualitative-analysis", title: "Qualitative analysis" },
+  { id: "saliency-maps", title: "Saliency maps", depth: 3 as const },
+  { id: "image-segmentation", title: "Image segmentation", depth: 3 as const },
+]
+
+export default function VisualWsdProject() {
   return (
-    <div className="min-h-screen bg-white font-serif">
-      {/* Header */}
-      <header className="flex justify-between items-center px-6 md:px-16 lg:px-32 py-4 md:py-6">
-        <Link href="/" className="text-2xl font-normal hover:text-red-700 transition-colors duration-500 ease-out">
-          LC
-        </Link>
-        <nav className="flex gap-8">
-          <Link href="/" className="text-lg hover:opacity-70 transition-opacity">
-            home
-          </Link>
-          <Link href="/projects" className="text-lg hover:opacity-70 transition-opacity">
-            projects
-          </Link>
-          <Link
-            href="https://drive.google.com/file/d/1qLjER70wPDLwe5QaCSDHcAfO04wKwCjq/view?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-lg hover:opacity-70 transition-opacity"
-          >
-            cv
-          </Link>
-        </nav>
-      </header>
+    <DistillArticle
+      title="Visual WSD using CLIPSeg"
+      published="March 2024"
+      subtitle="A multimodal word sense disambiguation project that compares CLIP and CLIPSeg for choosing the candidate image that best matches an ambiguous word in context."
+      hero={{
+        src: "/optimized/thumbnails/wsd.webp",
+        alt: "Watercolor illustration for the visual word sense disambiguation project",
+        width: 400,
+        height: 300,
+      }}
+      links={[
+        {
+          href: "https://github.com/ludocomito/Visual-WSD-using-CLIPSeg",
+          label: "GitHub",
+          kind: "github",
+        },
+      ]}
+      toc={toc}
+    >
+      <p>
+        Visual Word Sense Disambiguation (VWSD) is a multimodal NLP task. Given a context sentence, a target word, and
+        a set of candidate images, the goal is to identify the image that most appropriately represents the intended
+        sense of the target word.
+      </p>
 
-      {/* Main Content */}
-      <main className="px-6 md:px-16 lg:px-32 py-8 md:py-12 mx-4 md:mx-20">
-        {/* Title */}
-        <h1 className="text-4xl md:text-6xl lg:text-5xl font-normal text-red-700 text-center mb-6 md:mb-8 leading-tight">
-        Visual WSD using CLIPSeg
-        </h1>
+      <h2 id="the-project">The project</h2>
+      <p>
+        The baseline approach uses a pre-trained CLIP model to compute similarities between the context and candidate
+        images, selecting the image with the highest score. As an additional experiment, this work evaluates CLIPSeg, a
+        CLIP-based image segmentation model. The intuition is that segmentation is closer to visual disambiguation:
+        the model must focus on the relevant image region and separate it from surrounding content. For multilingual
+        test data, contexts are translated with dedicated Italian and Farsi translation models.
+      </p>
 
-        <div className="flex justify-center mb-5">
-          <Link href="https://github.com/ludocomito/Visual-WSD-using-CLIPSeg" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
-            <Github className="w-8 mt-2 lg:mt-5  lg:mb-5 h-10 text-gray-800 hover:text-red-700 transition-colors" />
-          </Link>
-        </div>
+      <h2 id="quantitative-results">Quantitative results</h2>
+      <p>
+        The first English test with CLIP reached 58.31% accuracy, confirming CLIP's usefulness in zero-shot settings.
+        CLIPSeg reached 63.28%, outperforming the baseline by 4.97 percentage points. Running CLIPSeg directly on
+        Italian and Farsi contexts without translation led to poor results, with 18.03% accuracy for Italian and 9.5%
+        for Farsi. Translation improved both cases substantially, reaching 50.49% for Italian and 32% for Farsi.
+      </p>
 
-        {/* Content Section */}
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
-            {/* Floating Image */}
-            <div className="block md:float-left mb-6 md:mb-4 md:mr-6 text-center md:text-left">
-              <div className="w-48 md:w-[280px] mx-auto md:mx-0">
-                <Image
-                  src="/wsd-icon.png"
-                  alt="Watercolor illustration of a person sitting on a cliff overlooking a gradient sky transitioning from orange to blue"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
+      <h2 id="qualitative-analysis">Qualitative analysis</h2>
+      <h3 id="saliency-maps">Saliency maps</h3>
+      <p>
+        Saliency maps help interpret which image regions influence the model's predictions. Here, the goal is to compare
+        samples where CLIPSeg predicts correctly and baseline CLIP fails, checking whether CLIPSeg's advantage comes
+        from focusing on the parts of the image that actually match the intended sense.
+      </p>
 
-            {/* Text Content */}
-            <div className="text-base md:text-lg leading-relaxed">
-              <br/>
-              <p className="mx-0 sm:text-left md:text-justify lg:text-justify text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              Visual Word Sense Disambiguation (VWSD) is a recently introduced task that arises from the latest developments in the field of Multimodal Natural Language Processing. Given a context sentence, a target word, and a series of candidate images, the goal of this task is to identify the image that most appropriately represents the sense of the target word.
+      <ArticleFigure
+        src="/optimized/articles/glutton-saliency.webp"
+        alt="Saliency map comparison for the glutton visual word sense disambiguation example"
+        width={900}
+        height={600}
+      />
 
+      <h3 id="image-segmentation">Image segmentation</h3>
+      <p>
+        Another experiment compares different contexts for the same ambiguous word and observes how segmentation
+        changes. For example, using "madeira wine" on an image of the Madeira river produces a weaker segmentation than
+        the correct "madeira river" context. A similar pattern appears with the Mercury statue examples, suggesting a
+        useful correlation between segmentation behavior and disambiguation accuracy.
+      </p>
 
+      <ArticleFigure
+        src="/optimized/articles/madeira-segmentations.webp"
+        alt="CLIPSeg segmentations for Madeira river and Madeira wine contexts"
+        width={900}
+        height={600}
+      />
 
-              </p>
-              <br/>
-             
-              <p className="mx-0 italic mt-8 mb-8 text-left text-4xl md:text-xl lg:text-4xl">
-                The project
-              </p>
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              The proposed baseline approach to tackle this problem is to utilize a pre-trained CLIP model to compute the similarities between the context and the candidate images, picking the image with the highest score. As an additional experiment, this work shows how utilizing a specialized version of CLIP for image segmentation (CLIPSeg) leads to a strong improvement in results. The intuition behind this choice is that the task of segmentation can be considered closer to a kind of disambiguation in the field of images, where the model has to properly focus on highlighting specific parts of the image and separate it from the surroundings. Finally, to deal with multilingual test data, input contexts are translated using specific translation models for Italian and Farsi.
-              </p>
-              <p className="mx-0 italic mt-6 mb-6 text-left text-4xl md:text-xl lg:text-4xl">
-                Quantitative results
-              </p>
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              In order to establish a baseline, a first test was per- formed with the CLIP model on the English test dataset. This method yielded an accuracy score of 58.31%, which still proves the versatility of CLIP in zero-shot learning scenarios without any additional fine-tuning. Supporting the intuition described in the Introduction, the CLIPSeg model's accuracy reached 63.28%, significantly outperforming the baseline by +4.97%. Subsequently, a first attempt was made to test the CLIPSeg model on the Italian and Farsi datasets without any translation, yielding very poor results (18.03% for Italian and 9.5% for Farsi). As expected, the usage of translation models drastically increased the performances in both cases, scoring 50.49% for the Italian dataset and 32% for the Farsi one.
-              </p>
-              <p className="mx-0 italic mt-6 mb-6 text-left text-4xl md:text-xl lg:text-4xl">
-                Qualitative analysis
-              </p>
-              <p className="mx-0 italic mt-6 mb-6 text-left text-3xl md:text-xl lg:text-3xl">
-               Saliency maps
-              </p>
-
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              Saliency maps allow us to interpret which regions of the input image were of particular interest with respect to the model's predictions. In this context, we want to interpret which regions of the image are closer to the text query. The idea is to compare samples where the CLIPSeg model predicted correctly and the baseline CLIP missed the prediction, to check whether this is due to CLIPSeg's better capabilities at recognizing relevant parts of the image.
-              </p>
-              <div className="flex justify-center my-8">
-                <Image
-                  src="/glutton_saliency.png"
-                  alt="Architecture diagram showing the robot's hardware and software components"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl h-auto rounded-lg shadow-lg"
-                />
-              </div>
-              <p className="mx-0 italic mt-6 mb-6 text-left text-3xl md:text-xl lg:text-3xl">
-               Image segmentation
-              </p>
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              In another attempt to investigate CLIPSeg's capabilities at visual disambiguation, another experiment was performed by comparing different contexts corresponding to a certain ambiguous word and looking at how much the segmentation changes with the same word in different contexts for images that were correctly disambiguated. For example we have the ambiguous word "madeira" and the images and contexts for "madeira river" and "madeira wine". As can be noticed, for example using the context "madeira wine" in the river image results in a much weaker segmentation that the respective correct context "madeira river". Another significant example can be seen for the mercury statue. This suggests a correlation between the segmentation and disambiguation capabilities of the model.              
-              </p>
-              <div className="flex justify-center my-8">
-                <Image
-                  src="/madeira_segmentations.png"
-                  alt="Architecture diagram showing the robot's hardware and software components"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl h-auto rounded-lg shadow-lg"
-                />
-              </div>
-              <div className="flex justify-center my-8">
-                <Image
-                  src="/mercury_segmentations.png"
-                  alt="Architecture diagram showing the robot's hardware and software components"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl h-auto rounded-lg shadow-lg"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="text-center py-8 md:py-12">
-        <div className="flex justify-center gap-8">
-          <Link href="https://www.linkedin.com/in/ludovico-comito/" className="text-lg hover:opacity-70 transition-opacity">
-            linkedin
-          </Link>
-          <Link href="https://x.com/ludocomito" className="text-lg hover:opacity-70 transition-opacity">
-            X
-          </Link>
-        </div>
-      </footer>
-    </div>
+      <ArticleFigure
+        src="/optimized/articles/mercury-segmentations.webp"
+        alt="CLIPSeg segmentations for different Mercury contexts"
+        width={900}
+        height={600}
+      />
+    </DistillArticle>
   )
 }

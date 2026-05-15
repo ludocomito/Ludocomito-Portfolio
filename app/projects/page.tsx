@@ -4,10 +4,28 @@ import Link from "next/link"
 export default function Projects() {
   const projects = [
     {
+      id: "48-hour-cancer-binder",
+      title: "The 48-Hour Cancer Binder",
+      date: "May 2026",
+      image: "/optimized/thumbnails/cancer-binder.webp",
+      alt: "Watercolor illustration of a binder interacting with a target protein",
+      preview:
+        "A hackathon field note on designing an FGFR2-selective protein binder, from target biology and hotspot selection to BoltzGen generation and off-target scoring.",
+    },
+    {
+      id: "anatomy-of-boltzgen",
+      title: "Anatomy of BoltzGen",
+      date: "November 2025",
+      image: "/optimized/thumbnails/boltzgen.webp",
+      alt: "Protein structure render on a dark background",
+      preview:
+        "A deep dive into BoltzGen, an all-atom diffusion model for biomolecular binder design. The article walks from molecular representations through pairwise geometry, diffusion sampling, training objectives, and inference pipelines.",
+    },
+    {
       id: "pnmlr",
       title: "PNMLR: Enhancing Route Recommendations With Personalized Preferences using GATs",
       date: "March 2025",
-      image: "/pnmlr-icon5.png",
+      image: "/optimized/thumbnails/pnmlr.webp",
       alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
       preview:
         "A personalized route recommendation system that integrates user preferences using Graph Attention Networks. The PNMLR model considers factors like user ID, time of day, and transport mode to deliver truly personalized route predictions, significantly outperforming traditional generic routing solutions.",
@@ -16,7 +34,7 @@ export default function Projects() {
       id: "dsi-for-ir",
       title: "Differentiable Search Index For Information Retrieval",
       date: "September 2024",
-      image: "/DSI-illustration.png",
+      image: "/optimized/thumbnails/dsi.webp",
       alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
       preview:
         "An exploration of the DSI concept using encoder-decoder architectures for information retrieval. This project investigates mapping string queries directly to relevant document IDs, experimenting with T5, Lamini-Flan-T5, and custom BERT-GPT2 architectures to understand the strengths and weaknesses of differentiable search indexing.",
@@ -25,7 +43,7 @@ export default function Projects() {
       id: "ncap-project",
       title: "Exploring Neuroplasticity in Bio-Inspired Neural Networks",
       date: "August 2024",
-      image: "/ncap-icon.png",
+      image: "/optimized/thumbnails/ncap.webp",
       alt: "Watercolor illustration of a person sitting on a cliff overlooking a gradient sky",
       preview:
         "An exploration of the DSI concept using encoder-decoder architectures for information retrieval. This project investigates mapping string queries directly to relevant document IDs, experimenting with T5, Lamini-Flan-T5, and custom BERT-GPT2 architectures to understand the strengths and weaknesses of differentiable search indexing.",
@@ -34,7 +52,7 @@ export default function Projects() {
       id: "wsd-clipseg",
       title: "Visual WSD using CLIPSeg",
       date: "March 2024",
-      image: "/wsd-icon.png",
+      image: "/optimized/thumbnails/wsd.webp",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
         "A Visual Word Sense Disambiguation system that identifies images representing the correct sense of ambiguous words in context. Using CLIPSeg for improved image segmentation capabilities, this project achieves significant performance gains over baseline CLIP models, with support for multilingual contexts through translation.",
@@ -43,7 +61,7 @@ export default function Projects() {
       id: "rl-robot",
       title: "Deep RL for Differential Drive Robot",
       date: "January 2024",
-      image: "/rl_robot.png",
+      image: "/optimized/thumbnails/rl-robot.webp",
       alt: "Watercolor illustration of a cozy study workspace with a robot and person learning together",
       preview:
         "A from-scratch differential drive robot built with Arduino and Raspberry Pi, controlled by a PPO-based reinforcement learning policy. The robot navigates to targets while avoiding obstacles using only distance and angle information from sensors, demonstrating practical applications of deep RL in robotics.",
@@ -52,7 +70,7 @@ export default function Projects() {
       id: "homonimy-disambiguation",
       title: "Homonymy disambiguation using DeBERTa",
       date: "November 2023",
-      image: "/homonymy_icon.png",
+      image: "/optimized/thumbnails/homonymy.webp",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
         "A homonymy disambiguation system using DeBERTa for coarse-grained Word Sense Disambiguation. The architecture incorporates hidden state averaging, sub-token pooling, and logits masking to effectively assign correct meanings to ambiguous words based on their context, handling thousands of possible senses efficiently.",
@@ -61,7 +79,7 @@ export default function Projects() {
       id: "postino",
       title: "POSTino: a mobile robot for delivery pickup",
       date: "December 2022",
-      image: "/postino-icon.png",
+      image: "/optimized/thumbnails/postino.webp",
       alt: "Watercolor illustration of a figure with shield standing in a maze-like structure",
       preview:
         "A mobile delivery robot designed for the RoboCup@Home Education 2022 competition, inspired by the 'Carry My Luggage' task. POSTino addresses real-world delivery challenges by providing contactless pickup solutions, supporting social distancing requirements during the COVID-19 pandemic while following operators and navigating environments autonomously.",
@@ -79,11 +97,11 @@ export default function Projects() {
           <Link href="/" className="text-lg hover:opacity-70 transition-opacity">
             home
           </Link>
-          <Link href="/projects" className="text-lg hover:opacity-70 transition-opacity underline">
-            projects
+          <Link href="/blog" className="text-lg hover:opacity-70 transition-opacity underline">
+            blog
           </Link>
           <Link
-            href="https://drive.google.com/file/d/1qLjER70wPDLwe5QaCSDHcAfO04wKwCjq/view?usp=sharing"
+            href="https://drive.google.com/file/d/19IZZxzTEsonyKzqAG8KJJMjNe269vuor/view?usp=sharing"
             target="_blank"
             rel="noopener noreferrer"
             className="text-lg hover:opacity-70 transition-opacity"
@@ -97,14 +115,14 @@ export default function Projects() {
       <main className="px-6 md:px-16 lg:px-32 py-8 md:py-12">
         {/* Title */}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-normal text-red-700 text-center mb-8 md:mb-16 leading-tight">
-          Projects
+          Blog
         </h1>
 
-        {/* Projects List */}
+        {/* Blog List */}
         <div className="max-w-full md:max-w-2xl mx-auto space-y-8 md:space-y-16">
           {projects.map((project, index) => (
             <div key={project.id}>
-              <Link href={`/projects/${project.id}`} className="block group relative">
+              <Link href={`/blog/${project.id}`} className="block group relative">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 items-center transition-all duration-300 ease-out md:group-hover:-translate-y-1 md:group-hover:shadow-lg md:group-hover:shadow-gray-200/50 p-4 -m-4 rounded-lg">
                   {/* Project Image */}
                   <div className="md:col-span-1 flex justify-center md:justify-start">
@@ -142,10 +160,13 @@ export default function Projects() {
       <footer className="text-center py-8 md:py-12 mt-8 md:mt-16">
         <div className="flex justify-center gap-8">
           <Link href="https://www.linkedin.com/in/ludovico-comito/" className="text-lg hover:opacity-70 transition-opacity">
-            linkedin
+            LinkedIn
           </Link>
           <Link href="https://x.com/ludocomito" className="text-lg hover:opacity-70 transition-opacity">
             X
+          </Link>
+          <Link href="https://github.com/ludocomito" className="text-lg hover:opacity-70 transition-opacity">
+            GitHub
           </Link>
         </div>
       </footer>

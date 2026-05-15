@@ -1,0 +1,585 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+</style>
+
+<div class="conditioning-viz"
+    style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+
+    <!-- Controls -->
+    <div
+        style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <button class="cond-btn active" data-mode="structure">Structure Lock</button>
+        <button class="cond-btn" data-mode="binding">Binding Site</button>
+        <button class="cond-btn" data-mode="secondary">Secondary Structure</button>
+        <button class="cond-btn" data-mode="covalent">Covalent Bonds</button>
+    </div>
+
+    <div class="viz-container"
+        style="background: white; border: 1px solid #eee; border-radius: 8px; height: 320px; position: relative; overflow: hidden;">
+        <svg id="cond-svg" width="100%" height="100%" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0f0f0" stroke-width="1" />
+                </pattern>
+
+                <!-- Spring/Helix Pattern for Secondary Structure -->
+                <path id="helix-path" d="M0,0 Q5,-10 10,0 T20,0 T30,0 T40,0" fill="none" stroke="#e67e22"
+                    stroke-width="3" />
+            </defs>
+
+            <!-- Background -->
+            <rect width="100%" height="100%" fill="url(#grid)" />
+
+            <g id="cond-scene" transform="translate(400, 160)"></g>
+        </svg>
+
+        <!-- Overlay Label/Tooltip area -->
+        <div id="cond-overlay"
+            style="position: absolute; bottom: 15px; left: 0; width: 100%; text-align: center; pointer-events: none;">
+            <span id="cond-label"
+                style="background: rgba(255,255,255,0.9); padding: 5px 12px; border-radius: 15px; border: 1px solid #ddd; font-size: 13px; color: #666; font-weight: 500;">
+                Select a condition to visualize
+            </span>
+        </div>
+    </div>
+
+    <!-- Explanation -->
+    <div id="cond-explanation"
+        style="margin-top: 15px; padding: 12px; background: #fff; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #555; border-left: 4px solid #3498db; min-height: 60px; transition: all 0.3s; display: flex; align-items: center;">
+        <!-- Populated by JS -->
+    </div>
+</div>
+
+<style>
+    .conditioning-viz {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    .cond-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        background: white;
+        color: #555;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+    }
+
+    .cond-btn:hover {
+        background: #f8f9fa;
+        border-color: #bdc3c7;
+        transform: translateY(-1px);
+    }
+
+    .cond-btn.active {
+        background: #9b59b6;
+        color: white;
+        border-color: #9b59b6;
+        box-shadow: 0 2px 5px rgba(155, 89, 182, 0.3);
+    }
+</style>
+
+<script>
+    (function () {
+        const scene = document.getElementById('cond-scene');
+        const btns = document.querySelectorAll('.cond-btn');
+        const explanation = document.getElementById('cond-explanation');
+        const label = document.getElementById('cond-label');
+        const svgNS = "http://www.w3.org/2000/svg";
+
+        const modes = {
+            structure: {
+                title: "Structure Conditioning",
+                desc: "<div style='width: 100%;'><strong>Locked Coordinates:</strong> Parts of the input (gray) are fixed with known coordinates (e.g., a target protein or antibody framework). The model only designs the flexible regions (purple) to fit the locked structure.</div>",
+                color: "#9b59b6",
+                label: "Gray atoms are LOCKED • Purple atoms are DESIGNED",
+                render: renderStructure
+            },
+            binding: {
+                title: "Binding Site",
+                desc: "<div style='width: 100%;'><strong>Hotspots:</strong> Specific residues on the target can be tagged as 'binding sites' (green). The model is guided to focus its interactions on these specific areas, ignoring the rest of the surface.</div>",
+                color: "#2ecc71",
+                label: "Green area attracts the binder",
+                render: renderBinding
+            },
+            secondary: {
+                title: "Secondary Structure",
+                desc: "<div style='width: 100%;'><strong>Shape Constraints:</strong> We can force specific segments of the sequence to adopt specific shapes, like an alpha-helix (spiral) or beta-sheet, regardless of what the sequence alone might prefer.</div>",
+                color: "#e67e22",
+                label: "Forcing segment to be an ALPHA-HELIX",
+                render: renderSecondary
+            },
+            covalent: {
+                title: "Covalent Bonds",
+                desc: "<div style='width: 100%;'><strong>Cyclic Constraints:</strong> We can specify that two atoms must be chemically bonded. This is essential for creating cyclic peptides, where the head and tail are forced to connect.</div>",
+                color: "#e74c3c",
+                label: "Forcing head-to-tail bond (Cyclic)",
+                render: renderCovalent
+            }
+        };
+
+        let currentMode = 'structure';
+        let animationId = null;
+
+        function createEl(type, attrs, text) {
+            const el = document.createElementNS(svgNS, type);
+            for (let k in attrs) el.setAttribute(k, attrs[k]);
+            if (text) el.textContent = text;
+            return el;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            const config = modes[mode];
+
+            explanation.innerHTML = config.desc;
+            explanation.style.borderLeftColor = config.color;
+            label.innerHTML = config.label;
+
+            // Cancel previous animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            // Clear
+            while (scene.firstChild) scene.removeChild(scene.firstChild);
+
+            // Render
+            config.render(scene, config.color);
+        }
+
+        btns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                btns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                setMode(btn.dataset.mode);
+            });
+        });
+
+        // --- Renderers ---
+
+        function renderStructure(g, color) {
+            // Draw "Locked" protein (Gray ribbon with atoms)
+            const lockedGroup = createEl('g', {});
+            g.appendChild(lockedGroup);
+
+            // Define path for fixed structure (Two domains with a gap)
+            // Left Domain
+            lockedGroup.appendChild(createEl('path', {
+                d: "M -120 -20 C -100 -60, -80 20, -60 -20 S -40 -60, -20 -20",
+                fill: "none", stroke: "#bdc3c7", "stroke-width": 12, "stroke-linecap": "round"
+            }));
+
+            // Right Domain
+            lockedGroup.appendChild(createEl('path', {
+                d: "M 20 -20 C 40 -60, 60 20, 80 -20 S 100 -60, 120 -20",
+                fill: "none", stroke: "#bdc3c7", "stroke-width": 12, "stroke-linecap": "round"
+            }));
+
+            // Add "atoms" to fixed structure to make it look molecular
+            [-120, -100, -80, -60, -40, -20].forEach(x => {
+                lockedGroup.appendChild(createEl('circle', { cx: x, cy: -20 + (Math.random() - 0.5) * 10, r: 5, fill: "#95a5a6" }));
+            });
+            [20, 40, 60, 80, 100, 120].forEach(x => {
+                lockedGroup.appendChild(createEl('circle', { cx: x, cy: -20 + (Math.random() - 0.5) * 10, r: 5, fill: "#95a5a6" }));
+            });
+
+            // Text moved below
+            lockedGroup.appendChild(createEl('text', {
+                x: 0, y: 60, "text-anchor": "middle", fill: "#7f8c8d", "font-size": 12, "font-weight": "bold"
+            }, "FIXED BACKBONE"));
+
+            // Padlock icon (attached to left domain)
+            const lock = createEl('g', { transform: "translate(-140, -30) scale(0.8)" });
+            lock.appendChild(createEl('rect', { x: 0, y: 10, width: 20, height: 15, fill: "#7f8c8d" }));
+            lock.appendChild(createEl('path', { d: "M 3 10 L 3 5 A 7 7 0 0 1 17 5 L 17 10", fill: "none", stroke: "#7f8c8d", "stroke-width": 3 }));
+            g.appendChild(lock);
+
+            // Designable Loop (Chain of atoms connecting -20 to 20)
+            const designGroup = createEl('g', {});
+            g.appendChild(designGroup);
+
+            const numAtoms = 12;
+            const atoms = [];
+
+            for (let i = 0; i < numAtoms; i++) {
+                const atom = createEl('circle', { r: 6, fill: color });
+                designGroup.appendChild(atom);
+                atoms.push(atom);
+            }
+
+            // Connection lines between designed atoms
+            const connectionPath = createEl('path', {
+                fill: "none", stroke: color, "stroke-width": 3, "opacity": 0.5
+            });
+            // Insert before atoms so lines are behind
+            designGroup.insertBefore(connectionPath, atoms[0]);
+
+            // Animate loop wiggling
+            let t = 0;
+            function animate() {
+                t += 0.05;
+
+                const startX = -20;
+                const endX = 20;
+                const startY = -20;
+                const endY = -20;
+
+                const pathPoints = [];
+
+                // Interpolate positions for a bridge
+                for (let i = 0; i < numAtoms; i++) {
+                    const pct = (i + 1) / (numAtoms + 1); // 0..1
+
+                    // Base linear pos
+                    let x = startX + (endX - startX) * pct;
+
+                    // Add S-curve shape
+                    x += 25 * Math.sin(pct * Math.PI * 2);
+
+                    // Base arc height + secondary wave
+                    let yBase = startY - 80 * Math.sin(pct * Math.PI) + 15 * Math.sin(pct * Math.PI * 3);
+
+                    // Dynamic Wiggle
+                    let xOff = Math.sin(t + i * 0.5) * 3;
+                    let yOff = Math.cos(t * 1.3 + i * 0.5) * 3;
+
+                    let cx = x + xOff;
+                    let cy = yBase + yOff;
+
+                    atoms[i].setAttribute('cx', cx);
+                    atoms[i].setAttribute('cy', cy);
+                    pathPoints.push(`${cx},${cy}`);
+                }
+
+                // Draw connecting lines
+                let d = `M ${startX} ${startY}`;
+                pathPoints.forEach(p => d += ` L ${p}`);
+                d += ` L ${endX} ${endY}`;
+                connectionPath.setAttribute('d', d);
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderBinding(g, color) {
+            // Target Protein
+            const target = createEl('path', {
+                d: "M -80 0 A 80 80 0 1 1 80 0 A 80 80 0 1 1 -80 0", // Circle basically
+                fill: "#ecf0f1", stroke: "#bdc3c7", "stroke-width": 2
+            });
+            g.appendChild(target);
+
+            // Binding Site Highlight (Hotspot)
+            const hotspot = createEl('circle', {
+                cx: 60, cy: -40, r: 15, fill: color, opacity: 0.6
+            });
+            g.appendChild(hotspot);
+
+            // Radiating rings
+            const ring = createEl('circle', {
+                cx: 60, cy: -40, r: 15, fill: "none", stroke: color, "stroke-width": 2
+            });
+            g.appendChild(ring);
+
+            // Small binder molecule
+            const binderGroup = createEl('g', { transform: "translate(-150, -100)" });
+            binderGroup.appendChild(createEl('circle', { r: 10, fill: "#e67e22" }));
+            binderGroup.appendChild(createEl('circle', { cx: 12, cy: 5, r: 8, fill: "#e67e22" }));
+            g.appendChild(binderGroup);
+
+            let t = 0;
+            function animate() {
+                t += 0.03;
+
+                // Pulse hotspot
+                const r = 15 + Math.sin(t * 5) * 3;
+                ring.setAttribute('r', r);
+                ring.setAttribute('opacity', 1 - (r - 12) / 10);
+
+                // Move binder towards hotspot
+                // Start: -150, -100
+                // End: 70, -50 (near hotspot)
+                // Simple interpolation
+                const progress = (Math.sin(t) + 1) / 2; // 0 to 1 osc
+                const x = -150 + (210 * progress);
+                const y = -100 + (50 * progress);
+
+                // Add some wiggle
+                const wx = x + Math.sin(t * 3) * 5;
+                const wy = y + Math.cos(t * 4) * 5;
+
+                binderGroup.setAttribute('transform', `translate(${wx}, ${wy})`);
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderSecondary(g, color) {
+            const width = 300;
+            const startX = -width / 2;
+            const numResidues = 40;
+            const spacing = width / numResidues;
+
+            // Constraint Box
+            const box = createEl('rect', {
+                x: -60, y: -50, width: 120, height: 100,
+                fill: color, opacity: 0.08, stroke: color, "stroke-dasharray": "4,4"
+            });
+            g.appendChild(box);
+
+            g.appendChild(createEl('text', {
+                x: 0, y: 65, "text-anchor": "middle", fill: "#e67e22", "font-size": 12, "font-weight": "bold"
+            }, "ALPHA HELIX CONSTRAINT"));
+
+            // Container for dynamic elements
+            const atomGroup = createEl('g', {});
+            g.appendChild(atomGroup);
+
+            // Create pool of elements (atoms and bonds)
+            const residues = [];
+            for (let i = 0; i < numResidues; i++) {
+                const atom = createEl('circle', { r: 5, fill: "#34495e", stroke: "white", "stroke-width": 1 });
+                const bond = createEl('line', { stroke: "#34495e", "stroke-width": 3 });
+                atomGroup.appendChild(bond); // Bonds first
+                atomGroup.appendChild(atom);
+
+                residues.push({
+                    atom: atom,
+                    bond: bond,
+                    idx: i
+                });
+            }
+
+            let t = 0;
+            function animate() {
+                t += 0.05;
+
+                const points = [];
+
+                // 1. Calculate positions
+                for (let i = 0; i < numResidues; i++) {
+                    let x = startX + i * spacing;
+                    let y = 0;
+                    let z = 0;
+                    let isHelix = false;
+
+                    // Transition zone
+                    if (x > -60 && x < 60) {
+                        isHelix = true;
+                        // Helix Math: Standard alpha helix approx
+                        const helixCenter = 0;
+                        const xRel = x - helixCenter;
+
+                        // Winding
+                        const angle = xRel * 0.25 + t;
+                        const radius = 15;
+
+                        y = Math.sin(angle) * radius;
+                        z = Math.cos(angle) * radius; // Depth
+
+                    } else {
+                        // Coil/Disordered
+                        y = Math.sin(x * 0.05 + t * 0.5) * 10 + Math.cos(x * 0.1 - t * 0.5) * 5;
+                        z = Math.sin(x * 0.1 + t) * 5; // Slight depth wiggle
+                    }
+
+                    points.push({ x, y, z, isHelix });
+                }
+
+                // 2. Prepare draw order items (Painter's algo)
+                const drawItems = [];
+
+                for (let i = 0; i < numResidues; i++) {
+                    // The atom
+                    drawItems.push({
+                        type: 'atom',
+                        index: i,
+                        z: points[i].z,
+                        p: points[i]
+                    });
+
+                    // The bond to next
+                    if (i < numResidues - 1) {
+                        drawItems.push({
+                            type: 'bond',
+                            index: i,
+                            z: (points[i].z + points[i + 1].z) / 2,
+                            p1: points[i],
+                            p2: points[i + 1]
+                        });
+                    }
+                }
+
+                // Sort: smallest z (back) to largest z (front)
+                drawItems.sort((a, b) => a.z - b.z);
+
+                // 3. Render / Reorder
+                drawItems.forEach(item => {
+                    if (item.type === 'atom') {
+                        const el = residues[item.index].atom;
+                        atomGroup.appendChild(el); // Bring to front
+
+                        const scale = 1 + (item.z / 40); // Perspective scale
+                        const r = item.p.isHelix ? 5 : 4;
+
+                        el.setAttribute('cx', item.p.x);
+                        el.setAttribute('cy', item.p.y);
+                        el.setAttribute('r', Math.max(1, r * scale));
+
+                        if (item.p.isHelix) {
+                            el.setAttribute('fill', color);
+                        } else {
+                            el.setAttribute('fill', '#95a5a6');
+                        }
+                        el.setAttribute('opacity', 0.6 + (item.z + 20) / 100);
+                    } else {
+                        const el = residues[item.index].bond;
+                        atomGroup.appendChild(el);
+
+                        el.setAttribute('x1', item.p1.x);
+                        el.setAttribute('y1', item.p1.y);
+                        el.setAttribute('x2', item.p2.x);
+                        el.setAttribute('y2', item.p2.y);
+
+                        const isHelixBond = item.p1.isHelix && item.p2.isHelix;
+                        el.setAttribute('stroke', isHelixBond ? color : '#bdc3c7');
+                        el.setAttribute('stroke-width', Math.max(1, 3 * (1 + item.z / 40)));
+                        el.setAttribute('opacity', 0.6 + (item.z + 20) / 100);
+                    }
+                });
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function renderCovalent(g, color) {
+            // Draw a linear peptide that bends into a circle
+
+            const chainPath = createEl('path', {
+                fill: "none", stroke: "#34495e", "stroke-width": 5, "stroke-linecap": "round"
+            });
+            g.appendChild(chainPath);
+
+            // Nodes at ends
+            const head = createEl('circle', { r: 6, fill: color });
+            const tail = createEl('circle', { r: 6, fill: color });
+            g.appendChild(head);
+            g.appendChild(tail);
+
+            // Bond line (dashed)
+            const bond = createEl('line', {
+                stroke: color, "stroke-width": 2, "stroke-dasharray": "5,3", opacity: 0
+            });
+            g.appendChild(bond);
+
+            let t = 0;
+            function animate() {
+                t += 0.02;
+                // Cycle 0 -> 1 (linear -> cyclic)
+                // Using sin to oscillate
+                const cycle = (Math.sin(t) + 1) / 2;
+
+                // Length of chain
+                const L = 200;
+
+                // Linear state: Straight line from -100 to 100
+                // Cyclic state: Circle of perimeter L -> radius R = L / 2pi ~ 32
+
+                // We interpolate the shape. 
+                // Easier visual trick: Morph a quadratic bezier curve from straight to circle-ish?
+                // Or just bend the ends up.
+
+                // Let's do: Center 0,-30. 
+                // Linear: Ends at -100,0 and 100,0. Control 0,0.
+                // Cyclic: Ends meet at 0,-80. Control 0, 80.
+
+                // Interpolate end points
+                const startX = -100 * (1 - cycle); // -100 -> 0
+                const endX = 100 * (1 - cycle);    // 100 -> 0
+
+                const startY = 0 + (cycle * -50); // 0 -> -50
+                const endY = 0 + (cycle * -50);   // 0 -> -50
+
+                // Control point moves down to round it out
+                const cY = 50 * cycle;
+
+                // Wait, let's simple bend.
+                // Linear: Line -100,0 to 100,0
+                // Cyclic: Circle.
+
+                // Parametric Approach:
+                // Angle coverage: linear=0, cyclic=2*PI
+                // R changes from infinity to L/2pi
+
+                // Let's just approximate with path
+                // Linear: M -100 0 Q 0 0 100 0
+                // Bent: M -5 50 Q 0 -150 5 50 (teardrop)
+
+                const separation = 200 * (1 - cycle) + 10 * cycle; // 200 -> 10
+                const bendY = 100 * cycle; // 0 -> 100 (drop down)
+
+                const sx = -separation / 2;
+                const ex = separation / 2;
+
+                // Control points to make it look like a loop
+                const cpY = cycle * 150;
+                const cpX = 0;
+
+                // Actually let's keep head/tail static-ish and just visualize the force
+
+                // RE-PLAN:
+                // 1. Show open chain.
+                // 2. Show "force" arrows pulling ends together.
+                // 3. Snap them together.
+
+                const phase = (Math.sin(t * 2) + 1) / 2; // 0..1
+
+                // Ends positions
+                const x1 = -100 + (90 * phase); // -100 -> -10
+                const x2 = 100 - (90 * phase);  // 100 -> 10
+                const y = 0;
+
+                // Curve down
+                const midY = phase * 80;
+
+                chainPath.setAttribute('d', `M ${x1} ${y} Q 0 ${midY} ${x2} ${y}`);
+
+                head.setAttribute('cx', x1); head.setAttribute('cy', y);
+                tail.setAttribute('cx', x2); tail.setAttribute('cy', y);
+
+                if (phase > 0.9) {
+                    bond.setAttribute('opacity', 1);
+                    bond.setAttribute('x1', x1); bond.setAttribute('y1', y);
+                    bond.setAttribute('x2', x2); bond.setAttribute('y2', y);
+                } else {
+                    bond.setAttribute('opacity', 0.3 * phase);
+                }
+
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // Init
+        setMode('structure');
+
+    })();
+</script>

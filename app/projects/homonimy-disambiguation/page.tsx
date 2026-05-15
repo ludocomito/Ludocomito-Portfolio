@@ -1,142 +1,96 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Github } from "lucide-react"
-import Latex from "react-latex-next"
+import { ArticleFigure, DistillArticle } from "@/components/distill-article"
 
-export default function GradientDescentProject() {
+const toc = [
+  { id: "proposed-architecture", title: "Proposed architecture" },
+  { id: "averaging-hidden-states", title: "Averaging hidden states", depth: 3 as const },
+  { id: "sub-token-pooling", title: "Sub-token pooling", depth: 3 as const },
+  { id: "logits-mask", title: "Logits mask", depth: 3 as const },
+]
+
+export default function HomonymyDisambiguationProject() {
   return (
-    <div className="min-h-screen bg-white font-serif">
-      {/* Header */}
-      <header className="flex justify-between items-center px-6 md:px-16 lg:px-32 py-4 md:py-6">
-        <Link href="/" className="text-2xl font-normal hover:text-red-700 transition-colors duration-500 ease-out">
-          LC
-        </Link>
-        <nav className="flex gap-8">
-          <Link href="/" className="text-lg hover:opacity-70 transition-opacity">
-            home
-          </Link>
-          <Link href="/projects" className="text-lg hover:opacity-70 transition-opacity">
-            projects
-          </Link>
-          <Link
-            href="https://drive.google.com/file/d/1qLjER70wPDLwe5QaCSDHcAfO04wKwCjq/view?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-lg hover:opacity-70 transition-opacity"
-          >
-            cv
-          </Link>
-        </nav>
-      </header>
+    <DistillArticle
+      title="Homonymy disambiguation using DeBERTa"
+      published="November 2023"
+      subtitle="A coarse-grained word sense disambiguation system that uses DeBERTa embeddings, target-word pooling, and candidate-sense masking to classify ambiguous words in context."
+      hero={{
+        src: "/optimized/thumbnails/homonymy.webp",
+        alt: "Watercolor illustration for the homonymy disambiguation project",
+        width: 400,
+        height: 300,
+      }}
+      links={[
+        {
+          href: "https://github.com/ludocomito/Homonymy-Disambiguation-NLP?tab=readme-ov-file",
+          label: "GitHub",
+          kind: "github",
+        },
+      ]}
+      toc={toc}
+    >
+      <p>
+        In Natural Language Processing, Word Sense Disambiguation (WSD) is the task of assigning the correct
+        meaning to ambiguous target words given their context. Homonymy disambiguation is a specific instance of this
+        task where related senses are clustered together, producing a coarse-grained WSD setup. In this context, two
+        words are homonyms if they share the same lexical form but have unrelated meanings.
+      </p>
 
-      {/* Main Content */}
-      <main className="px-6 md:px-16 lg:px-32 py-8 md:py-12 mx-4 md:mx-20">
-        {/* Title */}
-        <h1 className="text-4xl md:text-6xl lg:text-5xl font-normal text-red-700 text-center mb-6 md:mb-8 leading-tight">
-        Homonymy disambiguation using DeBERTa
-        </h1>
+      <p>
+        BERT-based models such as GlossBERT have been extensively used for this family of tasks because contextualized
+        embeddings can capture word senses. This project describes a series of experiments with BERT-based
+        architectures, focusing on fine-tuning choices and the practical operations needed to make the classifier
+        behave well with a large sense inventory.
+      </p>
 
-        <div className="flex justify-center mb-5">
-          <Link href="https://github.com/ludocomito/Homonymy-Disambiguation-NLP?tab=readme-ov-file" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
-            <Github className="w-8 mt-2 lg:mt-5  lg:mb-5 h-10 text-gray-800 hover:text-red-700 transition-colors" />
-          </Link>
-        </div>
+      <h2 id="proposed-architecture">Proposed architecture</h2>
+      <p>
+        The proposed architecture consists of two main modules: DeBERTa, used to extract word embeddings for each
+        token, and a classifier head, implemented as a Multi-Layer Perceptron. The classifier consumes the
+        transformer's embeddings and outputs logits for each possible class. The model also adds operations at both the
+        embedding level and the logits level.
+      </p>
 
-        {/* Content Section */}
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
-            {/* Floating Image */}
-            <div className="block md:float-left mb-6 md:mb-4 md:mr-6 text-center md:text-left">
-              <div className="w-48 md:w-[280px] mx-auto md:mx-0">
-                <Image
-                  src="/homonymy_icon.png"
-                  alt="Watercolor illustration of a person sitting on a cliff overlooking a gradient sky transitioning from orange to blue"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
+      <ArticleFigure
+        src="/optimized/articles/proposed-architecture-homonymy.webp"
+        alt="Architecture diagram for the DeBERTa homonymy disambiguation model"
+        width={900}
+        height={600}
+        caption="High-level model architecture: contextual embeddings, target-word representation, and candidate-sense classification."
+      />
 
-            {/* Text Content */}
-            <div className="text-base md:text-lg leading-relaxed">
-    
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              In the field of Natural Language Processing, Word Sense Disambiguation (WSD) is a challenging task with the objective of assigning the correct meaning to ambiguous target words, given their context. Homonymy disambiguation is a specific instance of this task, where related senses are clustered together, leading to a form of Coarse-Grained WSD. In this context, two words are homonyms if they share the same lexical form but have unrelated meanings. BERT-based models such as GlossBERT have been extensively used, demonstrating the capability to produce contextualized embeddings that can capture word senses. The work presented describes a series of experiments involving BERT-based architectures, detailing the process of fine-tuning and the implementation choices.
+      <h3 id="averaging-hidden-states">Averaging hidden states</h3>
+      <p>
+        Different transformer layers encode information at different levels of abstraction. The proposed method uses
+        the average of the last four hidden states to build a richer representation for each token before pooling the
+        target word.
+      </p>
 
+      <h3 id="sub-token-pooling">Sub-token pooling</h3>
+      <p>
+        During tokenization, some words are split into multiple sub-tokens. After the transformer pass, the resulting
+        sub-token embeddings for each word are averaged to obtain a single representation for the complete word.
+      </p>
 
+      <ArticleFigure
+        src="/optimized/articles/token-handling.webp"
+        alt="Diagram showing how sub-token embeddings are pooled into complete word representations"
+        width={900}
+        height={600}
+      />
 
-              </p>
-              <br/>
-             
-              <p className="mx-0 italic mt-5 mb-8 text-left text-4xl md:text-xl lg:text-4xl">
-                Proposed architecture
-              </p>
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              The proposed architecture consists of two main modules: DeBERTa, used to extract word embeddings for each token, and a classifier head, consisting of a Multi-Layer Perceptron, which takes the Transformer's embeddings as input and outputs the logits for each possible class. Additionally, the model implements some operations both at the embeddings level and at the logits level, which will be highlighted in the following paragraphs.              </p>
-              <div className="flex justify-center my-8">
-                <Image
-                  src="/proposed_architecture_homonymy.png"
-                  alt="Architecture diagram showing the robot's hardware and software components"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl h-auto rounded-lg shadow-lg"
-                />
-              </div>
-              <p className="mx-0 italic mt-6 mb-6 text-left text-3xl md:text-xl lg:text-3xl">
-               Averaging hidden states
-              </p>
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              As different layers of BERT are expected to encode information at different levels, the proposed method considers the representation obtained by averaging the last four hidden states of BERT to obtain a more informative representation.
-              </p>
-              <p className="mx-0 italic mt-6 mb-6 text-left text-3xl md:text-xl lg:text-3xl">
-              Sub-token Pooling
-              </p>
-            
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              During tokenization, certain words can be split by BERT's tokenizer into sub-tokens. After being fed to the transformer, the resulting sub-token embeddings for each word are averaged to obtain a single representation for the entire word. This operation is performed for each word.
-              </p>
-              <div className="flex justify-center my-8">
-                <Image
-                  src="/token_handling.png"
-                  alt="Architecture diagram showing the robot's hardware and software components"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl h-auto rounded-lg shadow-lg"
-                />
-              </div>
-              <p className="mx-0 italic mt-6 mb-6 text-left text-4xl md:text-xl lg:text-3xl">
-                Logits mask
-              </p>
-              <p className="mx-0 text-left text-xl md:text-xl lg:text-2xl max-w-none md:max-w-4xl hyphens-auto" style={{hyphens: 'auto', wordBreak: 'break-word'}}>
-              In this kind of task, the classifier could potentially deal with thousands of possible senses. To address this problem, the candidate senses for target words present in the datasets are used to create a logits mask in the form of a list of zeros and ones. Specifically, ones are assigned to all the candidate senses for each target word, while all the others correspond to zero. This constrains the model to focus on the actual candidates.
-              </p>
-              <div className="flex justify-center my-8">
-                <Image
-                  src="/logits_mask.png"
-                  alt="Architecture diagram showing the robot's hardware and software components"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl h-auto rounded-lg shadow-lg"
-                />
-              </div>
-  
-            </div>
-          </div>
-        </div>
-      </main>
+      <h3 id="logits-mask">Logits mask</h3>
+      <p>
+        This task can involve thousands of possible senses. To keep the classifier focused, candidate senses for target
+        words in the dataset are used to create a logits mask. Candidate senses receive ones and all other senses
+        receive zeros, constraining the model to score only plausible meanings for the current target.
+      </p>
 
-      {/* Footer */}
-      <footer className="text-center py-8 md:py-12">
-        <div className="flex justify-center gap-8">
-          <Link href="https://www.linkedin.com/in/ludovico-comito/" className="text-lg hover:opacity-70 transition-opacity">
-            linkedin
-          </Link>
-          <Link href="https://x.com/ludocomito" className="text-lg hover:opacity-70 transition-opacity">
-            X
-          </Link>
-        </div>
-      </footer>
-    </div>
+      <ArticleFigure
+        src="/optimized/articles/logits-mask.webp"
+        alt="Diagram showing the candidate-sense logits mask"
+        width={900}
+        height={600}
+      />
+    </DistillArticle>
   )
 }

@@ -1,0 +1,353 @@
+<link rel="stylesheet" href="/boltzgen-fragments/fragment-base.css">
+<style>
+    html,
+    body {
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+</style>
+
+<div class="edm-sampler-viz" style="width: 100%; max-width: 900px; margin: 30px auto; padding: 20px; background: #fafafa; border-radius: 8px;">
+    <!-- Parameter Controls -->
+    <div style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee;">
+        <div class="edm-controls-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 15px;">
+            <div>
+                <label style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #3498db;">
+                    <span>β (noise scale)</span>
+                    <span id="beta-value">0.3</span>
+                </label>
+                <input type="range" id="beta-slider" min="0.1" max="1.5" step="0.1" value="0.3" 
+                       style="width: 100%; height: 6px; background: #ddd; border-radius: 3px; outline: none;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 4px;">
+                    <span>0.1 (Low Noise)</span>
+                    <span>1.5 (High Noise)</span>
+                </div>
+            </div>
+            <div>
+                <label style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #e67e22;">
+                    <span>α (step scale)</span>
+                    <span id="alpha-value">0.7</span>
+                </label>
+                <input type="range" id="alpha-slider" min="0.1" max="1.0" step="0.05" value="0.7"
+                       style="width: 100%; height: 6px; background: #ddd; border-radius: 3px; outline: none;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 4px;">
+                    <span>0.1 (Small Step)</span>
+                    <span>1.0 (Large Step)</span>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center;">
+            <button id="start-btn" style="padding: 8px 24px; font-size: 13px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 0 5px; transition: all 0.2s;">
+                Start Trajectory
+            </button>
+            <button id="reset-btn" style="padding: 8px 24px; font-size: 13px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 0 5px; transition: all 0.2s;">
+                Reset
+            </button>
+        </div>
+    </div>
+
+    <div class="edm-svg-wrapper">
+    <svg id="edm-sampler-svg" width="100%" height="350" viewBox="0 0 900 350" style="display: block; margin: 0 auto;">
+        <!-- Background timeline -->
+        <line x1="50" y1="175" x2="850" y2="175" stroke="#e0e0e0" stroke-width="1.5" stroke-dasharray="4,4"/>
+        
+        <!-- Left endpoint: T Noise -->
+        <line x1="50" y1="160" x2="50" y2="190" stroke="#333" stroke-width="2.5"/>
+        <text x="50" y="145" text-anchor="middle" font-size="13" font-weight="600" fill="#444">T Noise</text>
+        
+        <!-- Right endpoint: 0 Data -->
+        <line x1="850" y1="160" x2="850" y2="190" stroke="#333" stroke-width="2.5"/>
+        <text x="850" y="145" text-anchor="middle" font-size="13" font-weight="600" fill="#444">0 Data</text>
+        
+        <!-- Goal Distribution Region -->
+        <rect x="820" y="125" width="60" height="100" fill="#e8f5e9" stroke="#4caf50" stroke-width="1.5" stroke-dasharray="4,2" rx="4" opacity="0.3"/>
+        <text x="850" y="245" text-anchor="middle" font-size="11" fill="#4caf50" font-weight="500">Target Distribution</text>
+
+        <!-- Trajectory Path -->
+        <path id="trajectory-path" d="" fill="none" stroke="#3498db" stroke-width="1.5" opacity="0.3"/>
+
+        <!-- Current state X_i -->
+        <g id="xi-group">
+            <polygon id="xi-node" points="50,175 62,165 74,175 62,185" fill="#2c3e50" stroke="#1a252f" stroke-width="1.5"/>
+            <text x="62" y="155" text-anchor="middle" font-size="11" fill="#2c3e50" font-weight="600">X_t</text>
+        </g>
+        
+        <!-- Random noise ε_i visualization (dynamic) -->
+        <g id="epsilon-viz" opacity="0" transform="translate(0,0)">
+            <circle r="4" fill="#e74c3c" opacity="0.6"/>
+            <line x1="0" y1="0" x2="0" y2="0" stroke="#e74c3c" stroke-width="1" stroke-dasharray="2,2" id="epsilon-line"/>
+        </g>
+
+        <!-- Step arrow (dynamic) -->
+        <path id="step-arrow" d="" fill="none" stroke="#e67e22" stroke-width="2" marker-end="url(#arrowhead-orange)" opacity="0"/>
+
+        <!-- Arrow markers -->
+        <defs>
+            <marker id="arrowhead-orange" markerWidth="8" markerHeight="8" refX="7" refY="2.5" orient="auto">
+                <polygon points="0 0, 8 2.5, 0 5" fill="#e67e22"/>
+            </marker>
+        </defs>
+    </svg>
+    </div>
+    
+    <!-- Explanation -->
+    <div style="margin-top: 15px; padding: 12px; background: #fff; border-radius: 4px; font-size: 12px; line-height: 1.6; color: #555; border-left: 3px solid #3498db; border: 1px solid #eee; border-left-width: 3px;">
+        <p style="margin: 0;"><strong>Interactive Trajectory:</strong> Watch how the particle moves from pure noise (left) to the data distribution (right). 
+        <br>• <strong>β (Noise Scale):</strong> Controls how much random "shake" is added at each step to explore the space.
+        <br>• <strong>α (Step Scale):</strong> Controls how aggressively the model pushes the sample towards the data.</p>
+    </div>
+</div>
+
+<script>
+(function() {
+    const svg = document.getElementById('edm-sampler-svg');
+    const startBtn = document.getElementById('start-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const betaSlider = document.getElementById('beta-slider');
+    const alphaSlider = document.getElementById('alpha-slider');
+    const betaDisplay = document.getElementById('beta-value');
+    const alphaDisplay = document.getElementById('alpha-value');
+    
+    const xiGroup = document.getElementById('xi-group');
+    const xiNode = document.getElementById('xi-node');
+    const trajectoryPath = document.getElementById('trajectory-path');
+    const epsilonViz = document.getElementById('epsilon-viz');
+    const epsilonLine = document.getElementById('epsilon-line');
+    const stepArrow = document.getElementById('step-arrow');
+    
+    let animationId = null;
+    let isRunning = false;
+    let currentX = 50;
+    let currentY = 175;
+    let trajectoryPoints = [{x: 50, y: 175}];
+    const startX = 50;
+    const endX = 850;
+    const centerY = 175;
+    
+    // Update slider displays
+    function updateDisplays() {
+        betaDisplay.textContent = parseFloat(betaSlider.value).toFixed(2);
+        alphaDisplay.textContent = parseFloat(alphaSlider.value).toFixed(2);
+    }
+    
+    betaSlider.addEventListener('input', updateDisplays);
+    alphaSlider.addEventListener('input', updateDisplays);
+    
+    function updateTrajectoryPath() {
+        if (trajectoryPoints.length < 2) return;
+        let d = `M ${trajectoryPoints[0].x} ${trajectoryPoints[0].y}`;
+        for (let i = 1; i < trajectoryPoints.length; i++) {
+            d += ` L ${trajectoryPoints[i].x} ${trajectoryPoints[i].y}`;
+        }
+        trajectoryPath.setAttribute('d', d);
+    }
+    
+    function moveNode(x, y) {
+        // Center the polygon around x,y
+        const points = `${x},${y} ${x+12},${y-10} ${x+24},${y} ${x+12},${y+10}`;
+        // Actually we want center at x,y so subtract offset
+        // Current definition: points="50,175 62,165 74,175 62,185" -> Center is roughly 62,175
+        // Width is 24, height is 20. Center offset is 12, 0 relative to first point x
+        
+        const p1x = x - 12, p1y = y;
+        const p2x = x, p2y = y - 10;
+        const p3x = x + 12, p3y = y;
+        const p4x = x, p4y = y + 10;
+        
+        xiNode.setAttribute('points', `${p1x},${p1y} ${p2x},${p2y} ${p3x},${p3y} ${p4x},${p4y}`);
+        
+        // Also update text position
+        const text = xiGroup.querySelector('text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y - 20);
+    }
+    
+    async function step() {
+        if (!isRunning || currentX >= endX - 10) {
+            isRunning = false;
+            startBtn.disabled = false;
+            startBtn.textContent = "Restart";
+            return;
+        }
+        
+        const beta = parseFloat(betaSlider.value);
+        const alpha = parseFloat(alphaSlider.value);
+        
+        // 1. Add Noise (vertical jitter + slight horizontal backward/forward jitter)
+        // In EDM, noise adds exploration. Here we visualize it mainly as vertical deviation 
+        // to show "wandering" and slight x deviation.
+        const noiseY = (Math.random() - 0.5) * 40 * beta; 
+        const noiseX = (Math.random() - 0.5) * 20 * beta;
+        
+        // Visualization of noise step
+        const noisyX = currentX + noiseX;
+        const noisyY = currentY + noiseY;
+        
+        // Show noise visualization
+        epsilonViz.setAttribute('opacity', '1');
+        epsilonViz.setAttribute('transform', `translate(${noisyX}, ${noisyY})`);
+        epsilonLine.setAttribute('x1', 0);
+        epsilonLine.setAttribute('y1', 0);
+        // Line back to original position (relative)
+        epsilonLine.setAttribute('x2', currentX - noisyX);
+        epsilonLine.setAttribute('y2', currentY - noisyY);
+        
+        // Wait a bit to see the noise
+        await new Promise(r => setTimeout(r, 200));
+        
+        // 2. Denoise Step (Move towards goal)
+        // The model predicts X_0 (goal), so the step is towards (endX, centerY)
+        // We take a step scaled by alpha towards the goal
+        const vectorToGoalX = endX - noisyX;
+        const vectorToGoalY = centerY - noisyY;
+        
+        // EDM steps are usually a fraction of the way to the goal
+        // We simulate this by moving a fraction 'alpha' of the remaining distance (or fixed step size scaled by alpha)
+        // Let's use fixed step size scaled by alpha to ensure steady progress
+        const baseStep = 40; // pixels
+        const stepMagnitude = baseStep * (0.5 + alpha); // alpha 0.1->0.55*base, alpha 1.0->1.5*base
+        
+        // Normalize vector
+        const dist = Math.sqrt(vectorToGoalX*vectorToGoalX + vectorToGoalY*vectorToGoalY);
+        const dirX = vectorToGoalX / dist;
+        const dirY = vectorToGoalY / dist;
+        
+        let nextX = noisyX + dirX * stepMagnitude;
+        let nextY = noisyY + dirY * stepMagnitude;
+        
+        // Clamp Y to stay somewhat within bounds
+        nextY = Math.max(50, Math.min(300, nextY));
+        
+        // Visualize step arrow
+        stepArrow.setAttribute('d', `M ${currentX} ${currentY} L ${nextX} ${nextY}`);
+        stepArrow.setAttribute('opacity', '1');
+        
+        await new Promise(r => setTimeout(r, 200));
+        
+        // Update state
+        currentX = nextX;
+        currentY = nextY;
+        trajectoryPoints.push({x: currentX, y: currentY});
+        
+        updateTrajectoryPath();
+        moveNode(currentX, currentY);
+        
+        // Hide helpers for next step
+        epsilonViz.setAttribute('opacity', '0');
+        stepArrow.setAttribute('opacity', '0');
+        
+        // Continue
+        if (isRunning) {
+            animationId = requestAnimationFrame(step);
+        }
+    }
+    
+    startBtn.addEventListener('click', () => {
+        if (isRunning) return;
+        
+        if (currentX >= endX - 10) {
+            // If already finished, reset first implicitly
+            reset();
+        }
+        
+        isRunning = true;
+        startBtn.disabled = true;
+        step();
+    });
+    
+    function reset() {
+        isRunning = false;
+        if (animationId) cancelAnimationFrame(animationId);
+        
+        currentX = startX;
+        currentY = centerY;
+        trajectoryPoints = [{x: startX, y: centerY}];
+        
+        updateTrajectoryPath();
+        moveNode(currentX, currentY);
+        
+        epsilonViz.setAttribute('opacity', '0');
+        stepArrow.setAttribute('opacity', '0');
+        startBtn.disabled = false;
+        startBtn.textContent = "Start Trajectory";
+    }
+    
+    resetBtn.addEventListener('click', reset);
+    
+    // Initial position
+    moveNode(startX, centerY);
+
+})();
+</script>
+
+<style>
+.edm-sampler-viz {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.edm-sampler-viz input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.edm-sampler-viz input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #3498db;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.edm-sampler-viz input[type="range"]#alpha-slider::-webkit-slider-thumb {
+    background: #e67e22;
+}
+
+.edm-sampler-viz input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #3498db;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+}
+
+.edm-sampler-viz input[type="range"]#alpha-slider::-moz-range-thumb {
+    background: #e67e22;
+}
+
+.edm-sampler-viz button:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.edm-sampler-viz button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.edm-sampler-viz button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .edm-controls-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    .edm-svg-wrapper {
+        padding-bottom: 10px;
+        width: 100%;
+    }
+    #edm-sampler-svg {
+        min-width: 0;
+    }
+}
+</style>
