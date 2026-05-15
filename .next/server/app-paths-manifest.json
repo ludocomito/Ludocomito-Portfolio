@@ -1,5 +1,4 @@
 {
-  "/icon.ico/route": "app/icon.ico/route.js",
-  "/blog/page": "app/blog/page.js",
-  "/blog/anatomy-of-boltzgen/page": "app/blog/anatomy-of-boltzgen/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/blog/48-hour-cancer-binder/page": "app/blog/48-hour-cancer-binder/page.js"
 }
