@@ -2,78 +2,22 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+const VIDEO_POSTER = '/optimized/home-video-poster.webp'
+const VIDEO_SRC = '/optimized/home-video.mp4'
+
 export default function HomeVideo() {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
   const [showPlayButton, setShowPlayButton] = useState(false)
 
   useEffect(() => {
-    type IdleWindow = Window &
-      typeof globalThis & {
-        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
-        cancelIdleCallback?: (handle: number) => void
-      }
-
-    const win = window as IdleWindow
-    let timeoutId: number | undefined
-    let idleId: number | undefined
-
-    const queueVideoLoad = () => {
-      if (win.requestIdleCallback) {
-        idleId = win.requestIdleCallback(() => setShouldLoadVideo(true), { timeout: 1500 })
-      } else {
-        timeoutId = window.setTimeout(() => setShouldLoadVideo(true), 700)
-      }
-    }
-
-    if (document.readyState === 'complete') {
-      queueVideoLoad()
-    } else {
-      window.addEventListener('load', queueVideoLoad, { once: true })
-    }
-
-    return () => {
-      window.removeEventListener('load', queueVideoLoad)
-      if (idleId !== undefined && win.cancelIdleCallback) {
-        win.cancelIdleCallback(idleId)
-      }
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!shouldLoadVideo) return
-
     const video = videoRef.current
     if (!video) return
 
-    const sessionPlayed = sessionStorage.getItem('home-video-played')
-
-    const showLastFrame = () => {
-      if (video && isFinite(video.duration)) {
-        video.currentTime = Math.max(video.duration - 0.05, 0)
-      }
-    }
-
-    if (sessionPlayed) {
-      video.load()
-      if (video.readyState >= 1) {
-        showLastFrame()
-      } else {
-        video.addEventListener('loadedmetadata', showLastFrame, { once: true })
-      }
-      return
-    }
-
-    video.load()
     video.play().catch(() => {
       setShowPlayButton(true)
     })
 
     const handleEnded = () => {
-      sessionStorage.setItem('home-video-played', 'true')
       setShowPlayButton(false)
     }
 
@@ -81,9 +25,8 @@ export default function HomeVideo() {
 
     return () => {
       video.removeEventListener('ended', handleEnded)
-      video.removeEventListener('loadedmetadata', showLastFrame)
     }
-  }, [shouldLoadVideo])
+  }, [])
 
   const handlePlayClick = () => {
     const video = videoRef.current
@@ -106,11 +49,13 @@ export default function HomeVideo() {
         width={512}
         height={512}
         muted
+        autoPlay
         playsInline
-        preload={shouldLoadVideo ? "metadata" : "none"}
+        poster={VIDEO_POSTER}
+        preload="auto"
         controls={false}
       >
-        {shouldLoadVideo ? <source src="/home_video.mp4" type="video/mp4" /> : null}
+        <source src={VIDEO_SRC} type="video/mp4" />
         Your browser does not support the video tag.
       </video>
 
